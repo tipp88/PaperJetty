@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 *No unreleased changes*
 
+## [1.1.0] - 2026-01-13
+
+### Added
+- Auto-capture now enforces confidence, stability, and on-screen bounds before triggering
+- Corner normalization clamps detected points so handles always remain draggable
+
+### Changed
+- Auto-capture uses a short delay after stable detection to reduce premature captures
+
+### Fixed
+- Premature auto-captures when edges briefly stabilize
+- Off-screen corner handles that prevented manual adjustment
+
 ## [1.0.0] - 2026-01-04
 
 ### Added

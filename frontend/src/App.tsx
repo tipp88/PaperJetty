@@ -81,15 +81,55 @@ const SettingsIcon = () => (
   </svg>
 );
 
+const DEFAULT_CORNERS: [Point, Point, Point, Point] = [
+  { x: 0.1, y: 0.1 },
+  { x: 0.9, y: 0.1 },
+  { x: 0.9, y: 0.9 },
+  { x: 0.1, y: 0.9 },
+];
+
+const CORNER_CLAMP_MARGIN = 0.02;
+const CORNER_OUT_OF_BOUNDS_LIMIT = 0.1;
+
+const clampCorner = (value: number, margin: number) =>
+  Math.min(1 - margin, Math.max(margin, value));
+
+const normalizeDetectedCorners = (
+  detected: DetectedCorners,
+  imgWidth: number,
+  imgHeight: number
+): [Point, Point, Point, Point] | null => {
+  const rawCorners: [Point, Point, Point, Point] = [
+    { x: detected.topLeft.x / imgWidth, y: detected.topLeft.y / imgHeight },
+    { x: detected.topRight.x / imgWidth, y: detected.topRight.y / imgHeight },
+    { x: detected.bottomRight.x / imgWidth, y: detected.bottomRight.y / imgHeight },
+    { x: detected.bottomLeft.x / imgWidth, y: detected.bottomLeft.y / imgHeight },
+  ];
+
+  for (const corner of rawCorners) {
+    if (!Number.isFinite(corner.x) || !Number.isFinite(corner.y)) {
+      return null;
+    }
+    if (
+      corner.x < -CORNER_OUT_OF_BOUNDS_LIMIT ||
+      corner.x > 1 + CORNER_OUT_OF_BOUNDS_LIMIT ||
+      corner.y < -CORNER_OUT_OF_BOUNDS_LIMIT ||
+      corner.y > 1 + CORNER_OUT_OF_BOUNDS_LIMIT
+    ) {
+      return null;
+    }
+  }
+
+  return rawCorners.map((corner) => ({
+    x: clampCorner(corner.x, CORNER_CLAMP_MARGIN),
+    y: clampCorner(corner.y, CORNER_CLAMP_MARGIN),
+  })) as [Point, Point, Point, Point];
+};
+
 function App() {
   const [view, setView] = useState<View>('camera');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
-  const [corners, setCorners] = useState<[Point, Point, Point, Point]>([
-    { x: 0.1, y: 0.1 },
-    { x: 0.9, y: 0.1 },
-    { x: 0.9, y: 0.9 },
-    { x: 0.1, y: 0.9 },
-  ]);
+  const [corners, setCorners] = useState<[Point, Point, Point, Point]>(DEFAULT_CORNERS);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -116,23 +156,18 @@ function App() {
       img.src = imageData;
       await new Promise(resolve => { img.onload = resolve; });
 
-      const normalizedCorners: [Point, Point, Point, Point] = [
-        { x: detectedCorners.topLeft.x / img.width, y: detectedCorners.topLeft.y / img.height },
-        { x: detectedCorners.topRight.x / img.width, y: detectedCorners.topRight.y / img.height },
-        { x: detectedCorners.bottomRight.x / img.width, y: detectedCorners.bottomRight.y / img.height },
-        { x: detectedCorners.bottomLeft.x / img.width, y: detectedCorners.bottomLeft.y / img.height },
-      ];
-      console.log('Using detected corners with confidence:', detectedCorners.confidence);
-      setCorners(normalizedCorners);
+      const normalizedCorners = normalizeDetectedCorners(detectedCorners, img.width, img.height);
+      if (normalizedCorners) {
+        console.log('Using detected corners with confidence:', detectedCorners.confidence);
+        setCorners(normalizedCorners);
+      } else {
+        console.log('Detected corners out of bounds, using defaults');
+        setCorners(DEFAULT_CORNERS);
+      }
     } else {
       // Fallback to default corners
       console.log('Using default corners (no detection or low confidence)');
-      setCorners([
-        { x: 0.1, y: 0.1 },
-        { x: 0.9, y: 0.1 },
-        { x: 0.9, y: 0.9 },
-        { x: 0.1, y: 0.9 },
-      ]);
+      setCorners(DEFAULT_CORNERS);
     }
 
     setView('preview');

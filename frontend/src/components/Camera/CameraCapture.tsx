@@ -9,6 +9,29 @@ interface CameraCaptureProps {
   onError?: (error: string) => void;
 }
 
+const AUTO_CAPTURE_DELAY_MS = 1200;
+const AUTO_CAPTURE_MIN_CONFIDENCE = 0.6;
+const AUTO_CAPTURE_MIN_STABILITY = 0.6;
+const AUTO_CAPTURE_MARGIN_RATIO = 0.04;
+
+const areCornersWithinBounds = (
+  corners: DetectedCorners,
+  width: number,
+  height: number,
+  marginRatio: number
+) => {
+  const marginX = width * marginRatio;
+  const marginY = height * marginRatio;
+  const points = [corners.topLeft, corners.topRight, corners.bottomRight, corners.bottomLeft];
+
+  return points.every((point) =>
+    point.x >= marginX &&
+    point.x <= width - marginX &&
+    point.y >= marginY &&
+    point.y <= height - marginY
+  );
+};
+
 // Flash icon
 const FlashIcon = ({ on }: { on: boolean }) => (
   <svg
@@ -44,6 +67,7 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
   // Auto-capture state
   const [autoCapturePending, setAutoCapturePending] = useState(false);
   const autoCaptureTriggeredRef = useRef(false);
+  const autoCaptureTimerRef = useRef<number | null>(null);
 
   // Edge detection hook
   const {
@@ -103,23 +127,70 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
     }
 
     // Need corners and stability
-    if (!corners || !isStable) {
+    if (!corners || !isStable || !videoRef.current) {
+      if (autoCaptureTimerRef.current !== null) {
+        window.clearTimeout(autoCaptureTimerRef.current);
+        autoCaptureTimerRef.current = null;
+      }
       setAutoCapturePending(false);
       return;
     }
 
-    // Capture NOW - no delay!
-    setAutoCapturePending(true);
-    autoCaptureTriggeredRef.current = true;
-
-    console.log('Auto-capture NOW, corners:', detectedCornersRef.current);
-    const imageData = captureImage();
-    if (imageData) {
-      onCapture(imageData, detectedCornersRef.current);
+    const video = videoRef.current;
+    if (!video.videoWidth || !video.videoHeight) {
+      setAutoCapturePending(false);
+      return;
     }
-  }, [corners, isStable, captureImage, onCapture]);
+
+    const boundsOk = areCornersWithinBounds(
+      corners,
+      video.videoWidth,
+      video.videoHeight,
+      AUTO_CAPTURE_MARGIN_RATIO
+    );
+    const confidenceOk = corners.confidence >= AUTO_CAPTURE_MIN_CONFIDENCE;
+    const stabilityOk = stability >= AUTO_CAPTURE_MIN_STABILITY;
+
+    if (!boundsOk || !confidenceOk || !stabilityOk) {
+      if (autoCaptureTimerRef.current !== null) {
+        window.clearTimeout(autoCaptureTimerRef.current);
+        autoCaptureTimerRef.current = null;
+      }
+      setAutoCapturePending(false);
+      return;
+    }
+
+    if (autoCaptureTimerRef.current === null) {
+      setAutoCapturePending(true);
+      autoCaptureTimerRef.current = window.setTimeout(() => {
+        autoCaptureTimerRef.current = null;
+        autoCaptureTriggeredRef.current = true;
+        console.log('Auto-capture after delay, corners:', detectedCornersRef.current);
+        const imageData = captureImage();
+        if (imageData) {
+          onCapture(imageData, detectedCornersRef.current);
+        }
+      }, AUTO_CAPTURE_DELAY_MS);
+    }
+  }, [corners, isStable, stability, captureImage, onCapture, videoRef]);
+
+  useEffect(() => {
+    return () => {
+      if (autoCaptureTimerRef.current !== null) {
+        window.clearTimeout(autoCaptureTimerRef.current);
+        autoCaptureTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const handleCapture = () => {
+    if (autoCaptureTimerRef.current !== null) {
+      window.clearTimeout(autoCaptureTimerRef.current);
+      autoCaptureTimerRef.current = null;
+    }
+    autoCaptureTriggeredRef.current = true;
+    setAutoCapturePending(false);
+
     const imageData = captureImage();
     if (imageData) {
       // Pass detected corners to parent for initial corner adjustment

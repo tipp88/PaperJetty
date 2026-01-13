@@ -9,8 +9,10 @@ A self-hosted, mobile-first web application for scanning documents with manual c
 
 ### Core Functionality
 - **📸 Camera-Based Scanning**: High-resolution capture using your device camera (up to 4K)
+- **🎯 Smart Auto-Capture**: Triggers only after stable, confident detection with a brief delay
 - **✋ Manual Corner Adjustment**: Precise document boundary control with interactive draggable handles
 - **🔄 Perspective Correction**: Automatically straighten and crop documents using OpenCV.js
+- **🧭 Safer Corner Handles**: Detected corners are clamped on-screen so you can always adjust them
 - **🤖 Smart Image Enhancement**: Auto-detects best mode (B&W for text, grayscale for mixed, enhanced for low contrast)
 - **🎨 Manual Enhancement Modes**: Color, grayscale, black & white, and enhanced - adjustable per page
 - **📄 Multi-Page PDFs**: Scan multiple pages into a single PDF document
@@ -186,7 +188,7 @@ Docu_Scan/
 2. **Grant Camera Permission**: Allow access when prompted
 3. **Position Document**: Point camera at a document
 4. **Wait for Detection**: Green overlay indicates good detection
-5. **Capture**: Tap the capture button
+5. **Capture**: Auto-capture triggers after stable detection or tap manually
 6. **Review**: Switch to Gallery view to see captured pages
 7. **Export**: Generate PDF and/or upload to Paperless-ngx
 
