@@ -222,6 +222,9 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </div>
 
         {/* Actions */}
+        <div className="flex items-center justify-between text-xs text-carbon-500">
+          <span>Version {__APP_VERSION__}</span>
+        </div>
         <div className="flex gap-3 mt-8">
           <button
             onClick={handleReset}

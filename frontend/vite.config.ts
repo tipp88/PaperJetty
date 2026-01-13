@@ -10,8 +10,15 @@ import path from 'path'
 const keyPath = path.resolve(__dirname, '../localhost-key.pem')
 const certPath = path.resolve(__dirname, '../localhost-cert.pem')
 const hasSSL = fs.existsSync(keyPath) && fs.existsSync(certPath)
+const packageJsonPath = path.resolve(__dirname, 'package.json')
+const appVersion = fs.existsSync(packageJsonPath)
+  ? JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8')).version ?? '0.0.0'
+  : '0.0.0'
 
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+  },
   plugins: [
     react(),
     VitePWA({
