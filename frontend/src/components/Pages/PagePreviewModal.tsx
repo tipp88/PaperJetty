@@ -76,12 +76,16 @@ export function PagePreviewModal({
       {/* Main content */}
       <div className="flex flex-col items-center max-w-4xl w-full mx-4">
         {/* Image container */}
-        <div className="relative w-full max-h-[70vh] flex items-center justify-center mb-6">
+        <div className="relative w-full h-[70vh] flex items-center justify-center mb-6 overflow-hidden">
           <img
             src={page.processedImage}
             alt={`Page ${pageNumber}`}
-            className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-2xl transition-transform duration-300"
-            style={{ transform: `rotate(${page.rotation}deg)` }}
+            className="object-contain rounded-xl shadow-2xl transition-transform duration-300"
+            style={{
+              transform: `rotate(${page.rotation}deg)`,
+              maxWidth: (page.rotation === 90 || page.rotation === 270) ? '70vh' : '100%',
+              maxHeight: (page.rotation === 90 || page.rotation === 270) ? '100vw' : '70vh'
+            }}
           />
         </div>
 
