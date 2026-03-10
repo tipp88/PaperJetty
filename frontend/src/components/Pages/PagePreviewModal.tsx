@@ -6,6 +6,7 @@ interface PagePreviewModalProps {
   onClose: () => void;
   onDelete: () => void;
   onRetake: () => void;
+  onRotate: () => void;
 }
 
 const CloseIcon = () => (
@@ -26,12 +27,22 @@ const RefreshIcon = () => (
   </svg>
 );
 
+// Removed unused icons here
+
+const RealRotateIcon = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 10a8 8 0 0114.32-4.906l1.474-1.474A1 1 0 0120 4.327V9a1 1 0 01-1 1h-4.673a1 1 0 01-.707-1.707l1.09-1.09A6 6 0 1018 10h2a8 8 0 11-17 0z" />
+  </svg>
+);
+
+
 export function PagePreviewModal({
   page,
   pageNumber,
   onClose,
   onDelete,
   onRetake,
+  onRotate,
 }: PagePreviewModalProps) {
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -69,7 +80,7 @@ export function PagePreviewModal({
           <img
             src={page.processedImage}
             alt={`Page ${pageNumber}`}
-            className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-2xl"
+            className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-2xl transition-transform duration-300"
             style={{ transform: `rotate(${page.rotation}deg)` }}
           />
         </div>
@@ -82,6 +93,13 @@ export function PagePreviewModal({
           >
             <RefreshIcon />
             <span>Retake</span>
+          </button>
+          <button
+            onClick={onRotate}
+            className="btn btn-secondary"
+          >
+            <RealRotateIcon />
+            <span>Rotate</span>
           </button>
           <button
             onClick={handleDelete}

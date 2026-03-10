@@ -142,7 +142,7 @@ function App() {
   const [selectedPageIds, setSelectedPageIds] = useState<Set<string>>(new Set());
 
   const settings = useSettings();
-  const { pages, addPage, deletePage, deletePages, replacePage, updatePage, processPage, reorderPages, clear } = useDocumentStore();
+  const { pages, addPage, deletePage, deletePages, replacePage, updatePage, processPage, reorderPages, clear, rotatePage } = useDocumentStore();
   const { downloadPDF, uploadToPaperless, isExporting, error: exportError, progress } = useExport();
 
   const handleCapture = async (imageData: string, detectedCorners?: DetectedCorners | null) => {
@@ -263,6 +263,13 @@ function App() {
       setView('camera');
     }
   };
+
+  const handleRotateFromPreview = () => {
+    if (previewPageId) {
+      rotatePage(previewPageId);
+    }
+  };
+
 
   // Selection mode handlers
   const handleLongPress = (pageId: string) => {
@@ -510,6 +517,7 @@ function App() {
             onClose={handleClosePreview}
             onDelete={handleDeleteFromPreview}
             onRetake={handleRetakeFromPreview}
+            onRotate={handleRotateFromPreview}
           />
         )}
 
