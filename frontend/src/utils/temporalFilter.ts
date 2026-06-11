@@ -20,8 +20,22 @@ export class TemporalFilter {
   }
 
   /**
+   * Get the area of a quadrilateral using the Shoelace formula
+   */
+  private getArea(corners: DetectedCorners): number {
+    const pts = [corners.topLeft, corners.topRight, corners.bottomRight, corners.bottomLeft];
+    let area = 0;
+    for (let i = 0; i < 4; i++) {
+      const p1 = pts[i];
+      const p2 = pts[(i + 1) % 4];
+      area += p1.x * p2.y - p2.x * p1.y;
+    }
+    return Math.abs(area) / 2;
+  }
+
+  /**
    * Add a new detection and return the smoothed result
-   * NO outlier rejection - just average whatever we get
+   * Rejects sudden outliers to eliminate tracking jitter
    */
   update(corners: DetectedCorners | null): DetectedCorners | null {
     if (!corners) {
@@ -40,10 +54,30 @@ export class TemporalFilter {
       return null;
     }
 
+    // Outlier rejection: if the new quad differs drastically in area from the current average,
+    // reject it as transient noise unless it persists for 3 consecutive frames.
+    if (this.history.length >= 3) {
+      const avg = this.getAverage();
+      const avgArea = this.getArea(avg);
+      const newArea = this.getArea(corners);
+
+      if (Math.abs(newArea - avgArea) / (avgArea || 1) > 0.40) {
+        this.missedFrames++;
+        if (this.missedFrames > 3) {
+          // Consistently different - accept it as the new true state
+          this.reset();
+          this.history.push(corners);
+          return corners;
+        }
+        // Reject and return current average
+        return avg;
+      }
+    }
+
     // Reset missed frame counter
     this.missedFrames = 0;
 
-    // Just add to history - no rejection
+    // Add to history
     this.history.push(corners);
 
     // Keep only the most recent frames

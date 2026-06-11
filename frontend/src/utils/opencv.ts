@@ -78,6 +78,27 @@ export interface DetectedCorners {
   confidence: number; // 0-1, higher is better
 }
 
+function getRotatedRectPoints(rect: any): Array<{ x: number; y: number }> {
+  const angleRad = (rect.angle * Math.PI) / 180;
+  const cos = Math.cos(angleRad);
+  const sin = Math.sin(angleRad);
+
+  const w = rect.size.width / 2;
+  const h = rect.size.height / 2;
+
+  const pts = [
+    { x: -w, y: -h },
+    { x: w, y: -h },
+    { x: w, y: h },
+    { x: -w, y: h }
+  ];
+
+  return pts.map(pt => ({
+    x: rect.center.x + pt.x * cos - pt.y * sin,
+    y: rect.center.y + pt.x * sin + pt.y * cos
+  }));
+}
+
 export function detectDocumentEdges(
   mat: any,
   minArea: number = 5000
@@ -140,22 +161,48 @@ export function detectDocumentEdges(
           const area = cv.contourArea(contour);
 
           if (area > dynamicMinArea) {
-            const perimeter = cv.arcLength(contour, true);
+            // Convex hull to smooth out crumpled edges and text overlapping
+            const hull = new cv.Mat();
+            cv.convexHull(contour, hull, false, true);
+
+            const perimeter = cv.arcLength(hull, true);
             const approx = new cv.Mat();
             const epsilons = [0.02, 0.03, 0.04, 0.05, 0.06];
+            let found = false;
 
             for (const eps of epsilons) {
-              cv.approxPolyDP(contour, approx, eps * perimeter, true);
+              cv.approxPolyDP(hull, approx, eps * perimeter, true);
  
               if (approx.rows === 4) {
                 const aspectRatio = getAspectRatio(approx);
                 if (aspectRatio >= 0.1 && aspectRatio <= 10.0) {
                   candidates.push({ contour: approx.clone(), area });
+                  found = true;
                 }
                 break;
               }
             }
+
+            // Fallback: If approxPolyDP failed to find exactly 4 points, use minAreaRect
+            if (!found) {
+              const rect = cv.minAreaRect(hull);
+              const pts = getRotatedRectPoints(rect);
+              const approxMat = cv.matFromArray(4, 1, cv.CV_32SC2, [
+                Math.round(pts[0].x), Math.round(pts[0].y),
+                Math.round(pts[1].x), Math.round(pts[1].y),
+                Math.round(pts[2].x), Math.round(pts[2].y),
+                Math.round(pts[3].x), Math.round(pts[3].y)
+              ]);
+              const aspectRatio = getAspectRatio(approxMat);
+              if (aspectRatio >= 0.1 && aspectRatio <= 10.0) {
+                candidates.push({ contour: approxMat, area });
+              } else {
+                approxMat.delete();
+              }
+            }
+
             approx.delete();
+            hull.delete();
           }
           contour.delete();
         }
@@ -198,6 +245,24 @@ export function detectDocumentEdges(
       cv.morphologyEx(edges, dilated, cv.MORPH_CLOSE, kernelOtsu);
       cv.morphologyEx(dilated, dilated, cv.MORPH_OPEN, kernelOtsu);
       kernelOtsu.delete();
+
+      result = findBestQuad(dilated);
+    }
+
+    // Pipeline 3 (Fallback): Adaptive thresholding (robust for light backgrounds / shadow gradients)
+    if (!result) {
+      cv.adaptiveThreshold(
+        blurred,
+        edges,
+        255,
+        cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv.THRESH_BINARY_INV,
+        11,
+        2
+      );
+      const kernelAdaptive = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+      cv.morphologyEx(edges, dilated, cv.MORPH_CLOSE, kernelAdaptive);
+      kernelAdaptive.delete();
 
       result = findBestQuad(dilated);
     }

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.5] - 2026-06-11
+
+### Changed
+- Improved OpenCV edge detection for long receipts by adding a convex hull pre-pass to ignore crumpled paper folds and overlay text.
+- Added a rotated bounding box (`minAreaRect`) fallback logic to extract clean quadrilaterals when standard approximation yields >4 vertices.
+- Integrated adaptive thresholding as a third fallback pipeline to trace documents on low-contrast or unevenly-lit backgrounds.
+- Implemented area-based Shoelace outlier rejection in the temporal filter, eliminating frame-to-frame tracking wobbles.
+
+### Fixed
+- Fixed LocalStorage `QuotaExceededError` that broke image processing and capture reset actions by migrating Zustand storage to IndexedDB.
+- Optimized portrait mobile navigation layout to ensure the Settings gear icon is fully visible and not cut off on narrow viewports.
+
 ## [1.3.4] - 2026-06-11
 
 ### Added
