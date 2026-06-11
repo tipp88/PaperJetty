@@ -1,79 +1,58 @@
 # DocuScan - Privacy-First Document Scanner
 
-A self-hosted, mobile-first web application for scanning documents with manual corner adjustment, perspective correction, and seamless integration with Paperless-ngx.
+A self-hosted, mobile-first web application for scanning documents with real-time edge detection, manual corner adjustment, perspective correction, and seamless integration with Paperless-ngx.
 
 ![Design Preview](https://img.shields.io/badge/Design-Precision_Instrument-fbbf24?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Active-5cb576?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.3.4-blue?style=for-the-badge)
 
-## Features
+---
 
-### Core Functionality
-- **📸 Camera-Based Scanning**: High-resolution capture using your device camera (up to 4K)
-- **🎯 Smart Auto-Capture**: Triggers only after stable, confident detection with a brief delay
-- **✋ Manual Corner Adjustment**: Precise document boundary control with interactive draggable handles
-- **🔄 Perspective Correction**: Automatically straighten and crop documents using OpenCV.js
-- **🧭 Safer Corner Handles**: Detected corners are clamped on-screen so you can always adjust them
-- **🤖 Smart Image Enhancement**: Auto-detects best mode (B&W for text, grayscale for mixed, enhanced for low contrast)
-- **🎨 Manual Enhancement Modes**: Color, grayscale, black & white, and enhanced - adjustable per page
-- **📄 Multi-Page PDFs**: Scan multiple pages into a single PDF document
-- **📤 Paperless-ngx Integration**: Direct upload with real-time progress tracking
-- **⚙️ Settings Menu**: Configure Paperless URL, API token, tags, and default enhancement mode
-- **🔒 Privacy-First**: Runs entirely on your local network, no cloud services
-- **📱 Mobile Optimized**: Responsive design for iOS Safari and Android Chrome
-- **⚡ Progressive Web App**: Install on home screen for app-like experience
+## 🌟 Key Features
 
-### Design System: "Precision Instrument"
-- **Refined Brutalist-Industrial Aesthetic**: Swiss design influence with geometric precision
-- **Typography**: Syne (display) + Outfit (body) for distinctive character
-- **Color Palette**: Deep charcoal base with warm amber accents
-- **Visual Effects**: Animated scan lines, glowing elements, subtle noise texture
-- **Micro-interactions**: Smooth transitions, hover states, and staggered animations
+### 📸 Smart Capture & Processing
+- **High-Resolution Scanning**: High-quality document captures using device camera streams up to 4K.
+- **Smart Auto-Capture**: Computer vision-based automatic capture triggered when document boundary stability and confidence thresholds are sustained.
+- **Occlusion-Free Corner Magnifier**: Draggable corner adjustment handles displaying a zoomed preview. To avoid hand occlusion near the top boundary, the magnifier shifts horizontally to the side and clamps strictly to the screen margin.
+- **Clockwise Normalized Corners**: Draggable boundary markers are ordered and clamped inside the frame coordinates to prevent duplicate points or handles slipping off-screen.
+- **OpenCV.js Processing**: Warp perspective transformation, contrast correction, and image enhancements executed client-side.
 
-## Quick Start
+### 📚 Multi-Document Batch Queue
+- **"Finish Doc & New" Workflow**: Save pages to the active document and immediately queue it, instantly returning to the camera feed to capture the next file.
+- **Batch Uploader**: Progress-tracked sequential batch uploader. Individual upload errors are reported on-screen, allowing the batch process to continue for the remaining items.
+- **Metadata Editor**: Assign unique titles, modify tags, download individual PDFs, or delete elements from the persistent queue list.
+- **Zustand Persistence**: Queue items are stored in the browser's local state via a Zustand compatibility layer, safeguarding scanned documents against accidental page reloads or tab closures.
+
+### 🔒 Privacy-First & Self-Hosted
+- **Local Network execution**: All scanning, cropping, and PDF compilation occurs on your browser and local network. Documents are never transmitted to third-party clouds.
+- **PWA Ready**: Can be installed directly on mobile home screens as a Progressive Web App (PWA) with offline asset caching.
+
+---
+
+## 🛠️ Architecture Overview
+
+DocuScan is structured to run as lightweight, stateless containerized services:
+- **Frontend**: Single-page application built on Vite + React + TypeScript. Heavy computer vision tasks (contour finding, warping) are delegated to OpenCV.js.
+- **Backend**: Python FastAPI service providing PDF assembly (using `reportlab` and `pdf-lib`) and secure proxies for Paperless-ngx.
+- **Database/Storage**: Stateless backend; settings are saved in a JSON file locally, and the document queue is stored client-side.
+
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
-
 - Docker and Docker Compose
-- Node.js 18+ (for local development)
-- Python 3.11+ (for local development)
+- Node.js 20+ (optional, for local development)
+- Python 3.11+ (optional, for local development)
 
-### 1. Clone and Setup
-
-```bash
-cd Docu_Scan
-cp .env.example .env
-# Edit .env with your configuration (see Configuration section)
-```
-
-### 2. Download OpenCV.js (Optional but Recommended)
-
-OpenCV.js provides superior perspective correction. A fallback canvas-based method is used if OpenCV is not available.
+### 1. Production Docker Deploy (Recommended)
+For production environments, run the pre-built single-container Docker image containing built-in HTTPS support (required by modern mobile browsers for camera API permissions):
 
 ```bash
-cd frontend/public/opencv/
-curl -L https://docs.opencv.org/4.8.0/opencv.js -o opencv.js
-cd ../../..
-```
-
-**What OpenCV is used for:**
-- ✅ Real-time edge detection (detects document boundaries in camera stream)
-- ✅ Perspective transformation (warping documents based on corner points)
-- ✅ Image enhancement filters (grayscale, black & white, etc.)
-
-**Without OpenCV:**
-- Simple canvas-based cropping (crops to bounding box, no perspective correction)
-- Limited image enhancement options
-- Real-time edge detection and auto-capture are unavailable
-
-### 3. Deploy with Docker (Recommended for Production)
-
-For production, deploy the pre-built single-container Docker image from GitHub Container Registry (which includes built-in HTTPS support for mobile camera access):
-
-```bash
-# Pull the latest pre-built production image
+# Pull the latest release
 docker pull ghcr.io/tipp88/docu_scan:latest
 
-# Run the container with persistent settings volume
+# Deploy container with persistent volume mapping
 docker run -d \
   -p 8443:443 \
   -p 8080:80 \
@@ -83,309 +62,102 @@ docker run -d \
   ghcr.io/tipp88/docu_scan:latest
 ```
 
-The application will be available at:
-- **HTTPS App**: `https://your-lxc-ip:8443` (Recommended for camera access on mobile devices)
-- **HTTP App**: `http://your-lxc-ip:8080` (Alternative, HTTP only)
-
-*(Note: If you are doing local development, you can use `docker-compose up -d` in the root of the project to start separate frontend and backend development containers).*
-
-## Configuration
-
-### Environment Variables
-
-Copy `.env.example` to `.env` and configure:
-
-#### Backend API
-```bash
-BACKEND_HOST=0.0.0.0
-BACKEND_PORT=8080
-BACKEND_CORS_ORIGINS=http://localhost:5173
-```
-
-#### Paperless-ngx Integration
-```bash
-PAPERLESS_ENABLED=true
-PAPERLESS_URL=http://192.168.178.113:8000
-PAPERLESS_TOKEN=your_api_token_here
-PAPERLESS_DEFAULT_TAGS=scanned,mobile
-```
-
-**Getting Paperless API Token:**
-1. Log into your Paperless-ngx instance
-2. Go to Settings → API Tokens
-3. Create a new token
-4. Copy and paste it into your `.env` file
-
-#### Network Storage (Optional)
-
-**WebDAV:**
-```bash
-WEBDAV_ENABLED=true
-WEBDAV_URL=https://your-nextcloud.com/remote.php/dav/files/username/
-WEBDAV_USERNAME=your_username
-WEBDAV_PASSWORD=your_password
-WEBDAV_DEFAULT_PATH=/Scans/
-```
-
-**SMB/CIFS:**
-```bash
-SMB_ENABLED=true
-SMB_SERVER=192.168.178.100
-SMB_SHARE=documents
-SMB_USERNAME=your_username
-SMB_PASSWORD=your_password
-SMB_DEFAULT_PATH=/Scans/
-```
-
-**FTP:**
-```bash
-FTP_ENABLED=true
-FTP_HOST=192.168.178.100
-FTP_PORT=21
-FTP_USERNAME=your_username
-FTP_PASSWORD=your_password
-FTP_DEFAULT_PATH=/Scans/
-```
-
-## Development
-
-### Frontend Development
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### Backend Development
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python -m app.main
-```
-
-### Project Structure
-
-```
-Docu_Scan/
-├── frontend/              # Vite + React + TypeScript
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Camera/    # Camera capture and edge detection
-│   │   │   ├── Editor/    # Image editing and enhancement
-│   │   │   └── Export/    # PDF export and upload
-│   │   ├── hooks/         # React hooks
-│   │   ├── stores/        # Zustand state management
-│   │   ├── utils/         # Utilities (OpenCV, transforms)
-│   │   └── workers/       # Web Workers for heavy processing
-│   └── public/opencv/     # OpenCV.js WASM files
-│
-├── backend/               # FastAPI + Python
-│   └── app/
-│       ├── routers/       # API endpoints
-│       ├── services/      # Business logic
-│       │   └── storage/   # WebDAV/SMB/FTP connectors
-│       └── models/        # Data models
-│
-├── docker-compose.yml
-├── .env.example
-└── README.md
-```
-
-## Usage
-
-### Basic Workflow
-
-1. **Open the App**: Navigate to http://your-lan-ip:5173 on your mobile device
-2. **Grant Camera Permission**: Allow access when prompted
-3. **Position Document**: Point camera at a document
-4. **Wait for Detection**: Green overlay indicates good detection
-5. **Capture**: Auto-capture triggers after stable detection or tap manually
-6. **Review**: Switch to Gallery view to see captured pages
-7. **Export**: Generate PDF and/or upload to Paperless-ngx
-
-### Camera Controls
-
-- **Flash Button**: Toggle flash/torch (if device supports it)
-- **Capture Button**: Take a photo of the current frame
-- **Scan Line Animation**: Visual guide for document positioning
-- **Corner Frame Overlay**: Amber markers showing recommended document placement
-
-After capture, you'll enter **Corner Adjustment Mode**:
-- Drag the numbered corner handles (1-4) to precisely frame your document
-- Precision grid lines help align the document accurately
-- Selection area shown with glowing amber border
-
-### Gallery Features
-
-- **Reorder Pages**: Drag and drop thumbnails
-- **Delete Pages**: Remove unwanted captures
-- **Enhancement Mode**: Hover over pages to change enhancement (Color/Grayscale/B&W/Enhanced)
-- **Clear All**: Start fresh with a new document
-
-### Settings
-
-Access settings via the ⚙️ icon in the header:
-
-- **Paperless-ngx Configuration**:
-  - Server URL (e.g., `http://192.168.1.100:8000`)
-  - API Token (from Paperless → Settings → API Tokens)
-  - Default Tags (comma-separated)
-
-- **Image Processing**:
-  - Default Enhancement Mode: Auto-detect (recommended), Color, Grayscale, B&W, or Enhanced
-  - Auto-detect analyzes each page and selects the best mode for readability and OCR
-
-Settings are saved in browser localStorage (not sent to server).
-
-## Troubleshooting
-
-### Camera Not Working
-
-**iOS Safari:**
-- Requires HTTPS connection, even on LAN
-- Use a self-signed certificate or mDNS (docu-scan.local)
-- Check Settings → Safari → Camera permission
-
-**Android Chrome:**
-- Check site permissions in Chrome settings
-- Ensure camera is not in use by another app
-
-### Backend Not Running
-
-**Upload Stuck or Failing:**
-- Ensure backend server is running: `cd backend && ./venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8888 --reload`
-- Verify backend is accessible at `http://localhost:8888`
-- Check backend logs for errors
-- Test connection: `curl http://localhost:8888/api/paperless/test-connection`
-
-### Corner Adjustment Issues
-
-**Handles Not Responding:**
-- Ensure you're tapping directly on the numbered circles
-- On mobile, touch threshold is larger (easier to grab)
-- Try zooming out if the image is too large
-
-### Paperless Upload Fails
-
-- Verify Paperless-ngx URL is accessible
-- Check API token is valid
-- Ensure CORS is properly configured
-- Check backend logs: `docker-compose logs backend`
-
-### OpenCV.js Fails to Load (Optional)
-
-If OpenCV fails to load, the app will automatically fall back to canvas-based cropping (no perspective correction).
-
-**To use full perspective correction:**
-- Verify `frontend/public/opencv/opencv.js` exists and is ~8MB
-- Download from: https://docs.opencv.org/4.8.0/opencv.js
-- Clear browser cache
-- Check browser console for errors
-
-**Note:** Real-time edge detection and auto-capture will be unavailable without OpenCV.js.
-
-### Network Share Connection Issues
-
-**WebDAV:**
-- Test URL in browser first
-- Ensure credentials are correct
-- Check if HTTPS is required
-
-**SMB:**
-- Verify SMB server is accessible
-- Check firewall settings
-- Ensure SMB version compatibility
-
-**FTP:**
-- Test with FTP client first
-- Check passive vs active mode
-- Verify port is open
-
-## Security Considerations
-
-- **LAN-Only**: App is designed for local network use only
-- **API Tokens**: Store securely in environment variables
-- **HTTPS**: Recommended for iOS camera access
-- **Credentials**: Never commit .env file to version control
-- **CORS**: Restrict origins to known frontends only
-
-## Performance Tips
-
-### Mobile Devices
-
-- Edge detection runs at 5-10 FPS to save battery
-- Processing is done in Web Workers to keep UI responsive
-- Large documents (>10 pages) may use more memory
-
-### Optimization
-
-- Adjust `VITE_EDGE_DETECTION_FPS` (default: 8)
-- Set `PDF_COMPRESSION_QUALITY` (default: 85)
-- Limit `PDF_MAX_IMAGE_SIZE` (default: 3000px)
-
-## Status & Roadmap
-
-### Completed ✅
-- ✅ Camera capture with 4K resolution support
-- ✅ Real-time automatic edge detection with temporal smoothing
-- ✅ Smart auto-capture based on boundary stability and confidence
-- ✅ Manual corner adjustment with a floating crop magnifier to avoid touch occlusion
-- ✅ Image enhancement filters (color, grayscale, B&W, enhanced)
-- ✅ Perspective correction using OpenCV.js
-- ✅ Multi-page document workflow
-- ✅ Page reordering and rotation
-- ✅ PDF generation
-- ✅ Paperless-ngx integration with real-time upload progress
-- ✅ PWA support for offline use
-- ✅ Zustand state management
-- ✅ Docker deployment
-- ✅ Refined design system with custom component library
-- ✅ Mobile-optimized touch interactions
-
-### Planned 📋
-- 📋 Network share connectors (WebDAV/SMB/FTP)
-- 📋 Batch processing for multiple documents
-- 📋 OCR integration with text extraction
-- 📋 Custom enhancement presets
-- 📋 Document templates (receipts, business cards, etc.)
-- 📋 Export history and document library
-
-## Contributing
-
-This is a personal project for local document scanning. Feel free to fork and adapt for your own use.
-
-## License
-
-MIT License - See LICENSE file for details
-
-## Credits
-
-### Technology Stack
-- **OpenCV.js**: Computer vision and image processing
-- **FastAPI**: Python backend framework
-- **React 19 + TypeScript**: Frontend framework
-- **Vite**: Build tool and dev server
-- **Tailwind CSS v4**: Utility-first CSS framework
-- **Zustand**: Lightweight state management
-- **Paperless-ngx**: Document management integration
-
-### Design
-- **Typography**: [Syne](https://fonts.google.com/specimen/Syne) by Bonjour Monde, [Outfit](https://fonts.google.com/specimen/Outfit) by Rodrigo Fuenzalida
-- **Design System**: "Precision Instrument" - Refined brutalist-industrial aesthetic
-- **Icons**: Custom SVG icons based on Heroicons
-
-## Support
-
-For issues or questions:
-1. Check the troubleshooting section
-2. Review Docker logs: `docker-compose logs -f`
-3. Check browser console for frontend errors
-4. Verify environment variables are correct
+> [!IMPORTANT]
+> Because mobile browsers restrict camera access (getUserMedia) to secure origins, you must access the app using HTTPS (`https://<your-server-ip>:8443`). You will be prompted with a self-signed certificate warning; select "Proceed" to continue.
 
 ---
 
-**Built with privacy in mind. Your documents never leave your local network.**
+## ⚙️ Configuration
+
+### Environment Variables
+Configure the application by creating a `.env` file from the template:
+```bash
+cp .env.example .env
+```
+
+#### Backend Settings
+- `BACKEND_HOST`: Local interface to bind backend server (e.g. `0.0.0.0`)
+- `BACKEND_PORT`: Port to run backend (e.g. `8080`)
+- `BACKEND_CORS_ORIGINS`: Allowed client origins (e.g. `http://localhost:5173`)
+
+#### Paperless-ngx Settings
+- `PAPERLESS_ENABLED`: Set to `true` to enable direct uploading.
+- `PAPERLESS_URL`: Full address of your Paperless-ngx instance (e.g., `http://192.168.178.113:8000`).
+- `PAPERLESS_TOKEN`: Your Paperless API token (generated from Paperless → Settings → API Tokens).
+- `PAPERLESS_DEFAULT_TAGS`: Comma-separated fallback tags to apply to scans.
+
+---
+
+## 💻 Local Development
+
+### 1. Frontend Setup
+1. Download OpenCV.js to the public folder for local use:
+   ```bash
+   mkdir -p frontend/public/opencv/
+   curl -L https://docs.opencv.org/4.8.0/opencv.js -o frontend/public/opencv/opencv.js
+   ```
+2. Start the Vite development server:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+> [!TIP]
+> **No Webcam?** DocuScan automatically detects if camera hardware is missing or inaccessible, falling back to a simulated HTML5 Canvas camera feed. This allows you to test real-time edge detection, manual adjustment, and the queue workflow on a desktop without camera hardware.
+
+### 2. Backend Setup
+1. Configure python virtual environment:
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+2. Run the development API server:
+   ```bash
+   python -m app.main
+   ```
+
+---
+
+## 🧭 Troubleshooting
+
+### "Camera Error: No camera found on this device"
+- **SSL restriction**: Ensure you are accessing the app over HTTPS (`https://...`). Chrome and Safari do not expose camera media devices over HTTP connections unless resolving to `localhost`.
+- **Browser permissions**: Check browser site settings to ensure camera permissions have not been blocked.
+
+### Webhook/Upload connection refused
+- Verify the container has network access to the Paperless-ngx server.
+- Ensure the API token in Settings or `.env` is correct.
+- Check backend logs:
+  ```bash
+  docker logs docuscan
+  ```
+
+---
+
+## 🗺️ Roadmap & Status
+
+### Completed ✅
+- [x] Camera capture with 4K resolution support
+- [x] Real-time automatic edge detection with temporal smoothing
+- [x] Smart auto-capture based on boundary stability and confidence
+- [x] Manual corner adjustment with a floating crop magnifier to avoid touch occlusion
+- [x] Image enhancement filters (color, grayscale, B&W, enhanced)
+- [x] Multi-page document workflow and PDF compilation
+- [x] **Multi-Document Queue**: Scanned documents management with local persistence
+- [x] **Batch uploading** to Paperless-ngx with granular progress updates
+- [x] PWA support with offline caching
+- [x] **Mock Camera Fallback** for local desktop development
+- [x] Single container production deployment with built-in HTTPS proxy
+
+### Planned 📋
+- [ ] Network share storage integrations (WebDAV/SMB/FTP)
+- [ ] Local OCR integration and text extraction
+- [ ] Custom enhancement presets
+
+---
+
+## 📄 License
+Distributed under the MIT License. See `LICENSE` for details.
