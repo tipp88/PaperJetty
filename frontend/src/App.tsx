@@ -454,32 +454,32 @@ function App() {
         {view === 'preview' && capturedImage && (
           <div className="w-full h-full flex flex-col bg-carbon-950 animate-fade-in">
             {/* Corner Adjustment Area */}
-            <div className="flex-1 flex items-center justify-center overflow-hidden p-4" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+            <div className="flex-1 flex items-center justify-center overflow-hidden p-4 max-h-[calc(100vh-260px)] sm:max-h-[calc(100vh-200px)]">
               <CornerAdjuster
                 imageData={capturedImage}
                 initialCorners={corners}
                 onCornersChange={handleCornersChange}
               />
             </div>
-
+ 
             {/* Preview Controls */}
             <div className="bg-carbon-900 border-t border-carbon-800 p-4 safe-bottom">
               <div className="max-w-xl mx-auto">
-                <div className="text-center mb-4">
-                  <h3 className="font-display text-lg text-carbon-100 mb-1">Adjust Boundaries</h3>
-                  <p className="text-carbon-400 text-sm">Drag the corners to frame your document precisely</p>
+                <div className="text-center mb-3 sm:mb-4">
+                  <h3 className="font-display text-base sm:text-lg text-carbon-100 mb-0.5 sm:mb-1">Adjust Boundaries</h3>
+                  <p className="text-carbon-400 text-xs sm:text-sm hidden sm:block">Drag the corners to frame your document precisely</p>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-row sm:gap-3">
                   <button
                     onClick={handleRetake}
-                    className="btn btn-secondary flex-1"
+                    className="btn btn-secondary sm:flex-1"
                   >
                     <RefreshIcon />
                     <span>Retake</span>
                   </button>
                   <button
                     onClick={handleAcceptImage}
-                    className="btn btn-secondary flex-1"
+                    className="btn btn-secondary sm:flex-1"
                     disabled={isProcessing}
                   >
                     <CheckIcon />
@@ -487,7 +487,7 @@ function App() {
                   </button>
                   <button
                     onClick={handleAcceptAndFinish}
-                    className="btn btn-primary flex-1"
+                    className="btn btn-primary col-span-2 sm:flex-1"
                     disabled={isProcessing}
                   >
                     <ExportIcon />
