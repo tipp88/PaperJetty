@@ -56,23 +56,38 @@ cd ../../..
 ```
 
 **What OpenCV is used for:**
+- ✅ Real-time edge detection (detects document boundaries in camera stream)
 - ✅ Perspective transformation (warping documents based on corner points)
 - ✅ Image enhancement filters (grayscale, black & white, etc.)
-- ❌ ~~Edge detection~~ (currently disabled - manual corner adjustment only)
 
 **Without OpenCV:**
 - Simple canvas-based cropping (crops to bounding box, no perspective correction)
 - Limited image enhancement options
+- Real-time edge detection and auto-capture are unavailable
 
-### 3. Deploy with Docker
+### 3. Deploy with Docker (Recommended for Production)
+
+For production, deploy the pre-built single-container Docker image from GitHub Container Registry (which includes built-in HTTPS support for mobile camera access):
 
 ```bash
-docker-compose up -d
+# Pull the latest pre-built production image
+docker pull ghcr.io/tipp88/docu_scan:latest
+
+# Run the container with persistent settings volume
+docker run -d \
+  -p 8443:443 \
+  -p 8080:80 \
+  -v /opt/docuscan-data:/app/data \
+  --name docuscan \
+  --restart unless-stopped \
+  ghcr.io/tipp88/docu_scan:latest
 ```
 
 The application will be available at:
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:8080
+- **HTTPS App**: `https://your-lxc-ip:8443` (Recommended for camera access on mobile devices)
+- **HTTP App**: `http://your-lxc-ip:8080` (Alternative, HTTP only)
+
+*(Note: If you are doing local development, you can use `docker-compose up -d` in the root of the project to start separate frontend and backend development containers).*
 
 ## Configuration
 
@@ -271,7 +286,7 @@ If OpenCV fails to load, the app will automatically fall back to canvas-based cr
 - Clear browser cache
 - Check browser console for errors
 
-**Note:** Edge detection is disabled. OpenCV is only used for perspective transformation and image enhancement.
+**Note:** Real-time edge detection and auto-capture will be unavailable without OpenCV.js.
 
 ### Network Share Connection Issues
 
@@ -316,7 +331,9 @@ If OpenCV fails to load, the app will automatically fall back to canvas-based cr
 
 ### Completed ✅
 - ✅ Camera capture with 4K resolution support
-- ✅ Manual corner adjustment with interactive handles
+- ✅ Real-time automatic edge detection with temporal smoothing
+- ✅ Smart auto-capture based on boundary stability and confidence
+- ✅ Manual corner adjustment with a floating crop magnifier to avoid touch occlusion
 - ✅ Image enhancement filters (color, grayscale, B&W, enhanced)
 - ✅ Perspective correction using OpenCV.js
 - ✅ Multi-page document workflow
@@ -330,7 +347,6 @@ If OpenCV fails to load, the app will automatically fall back to canvas-based cr
 - ✅ Mobile-optimized touch interactions
 
 ### Planned 📋
-- 📋 Automatic edge detection (currently disabled - manual mode only)
 - 📋 Network share connectors (WebDAV/SMB/FTP)
 - 📋 Batch processing for multiple documents
 - 📋 OCR integration with text extraction
