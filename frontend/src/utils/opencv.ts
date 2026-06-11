@@ -146,10 +146,10 @@ export function detectDocumentEdges(
 
             for (const eps of epsilons) {
               cv.approxPolyDP(contour, approx, eps * perimeter, true);
-
+ 
               if (approx.rows === 4) {
                 const aspectRatio = getAspectRatio(approx);
-                if (aspectRatio >= 0.2 && aspectRatio <= 5.0) {
+                if (aspectRatio >= 0.1 && aspectRatio <= 10.0) {
                   candidates.push({ contour: approx.clone(), area });
                 }
                 break;

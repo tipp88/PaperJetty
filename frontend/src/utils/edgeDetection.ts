@@ -65,22 +65,22 @@ export async function detectDocumentEdges(
           const contour = contours.get(i);
           const area = cv.contourArea(contour);
 
-          // Filter by area (must be at least 10% of image)
-          if (area < imageArea * 0.1) continue;
-
+          // Filter by area (must be at least 5% of image)
+          if (area < imageArea * 0.05) continue;
+ 
           // Approximate the contour to a polygon
           const peri = cv.arcLength(contour, true);
           const approx = new cv.Mat();
           cv.approxPolyDP(contour, approx, 0.02 * peri, true);
-
+ 
           // Check if it's a quadrilateral (4 points)
           if (approx.rows === 4 && area > maxArea) {
             // Check aspect ratio (should be roughly document-like)
             const rect = cv.boundingRect(approx);
             const aspectRatio = Math.max(rect.width, rect.height) / Math.min(rect.width, rect.height);
-
-            // Accept aspect ratios between 1:1 (square) and 2:1 (document)
-            if (aspectRatio >= 1.0 && aspectRatio <= 2.5) {
+ 
+            // Accept aspect ratios between 1:1 (square) and 8:1 (receipts)
+            if (aspectRatio >= 1.0 && aspectRatio <= 8.0) {
               maxArea = area;
               if (bestContour) bestContour.delete();
               bestContour = approx;
@@ -90,7 +90,7 @@ export async function detectDocumentEdges(
           } else {
             approx.delete();
           }
-
+ 
           contour.delete();
         }
 
