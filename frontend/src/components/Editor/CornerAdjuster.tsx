@@ -390,9 +390,30 @@ export function CornerAdjuster({ imageData, initialCorners, onCornersChange }: C
   };
 
   const isNearTop = dragCoords && dragCoords.y < 150;
-  const magnifierTop = dragCoords 
-    ? (isNearTop ? dragCoords.y + 50 : dragCoords.y - 130)
-    : 0;
+  let magnifierTop = 0;
+  let magnifierLeft = 0;
+
+  if (dragCoords && containerRef.current) {
+    const containerWidth = containerRef.current.clientWidth;
+    const containerHeight = containerRef.current.clientHeight;
+
+    if (isNearTop) {
+      // Near top: position to the side of the finger to avoid hand/arm obstruction
+      magnifierTop = Math.max(10, Math.min(containerHeight - 130, dragCoords.y - 60));
+      if (dragCoords.x < containerWidth / 2) {
+        magnifierLeft = dragCoords.x + 70;
+      } else {
+        magnifierLeft = dragCoords.x - 190;
+      }
+    } else {
+      // Normal: position directly above the finger
+      magnifierTop = Math.max(10, Math.min(containerHeight - 130, dragCoords.y - 130));
+      magnifierLeft = dragCoords.x - 60;
+    }
+
+    // Clamp horizontal position to keep magnifier within the container
+    magnifierLeft = Math.max(10, Math.min(containerWidth - 130, magnifierLeft));
+  }
 
   return (
     <div
@@ -420,7 +441,7 @@ export function CornerAdjuster({ imageData, initialCorners, onCornersChange }: C
           style={{
             width: '120px',
             height: '120px',
-            left: `${dragCoords.x - 60}px`,
+            left: `${magnifierLeft}px`,
             top: `${magnifierTop}px`,
             zIndex: 100,
           }}

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.3] - 2026-06-11
+
+### Changed
+- Improved crop magnifier positioning near the top of the screen by shifting it horizontally (to the left or right) instead of directly below the finger, avoiding touch hand occlusion.
+
 ## [1.3.2] - 2026-06-11
 
 ### Fixed
