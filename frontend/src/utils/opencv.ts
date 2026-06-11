@@ -116,7 +116,8 @@ export function detectDocumentEdges(
     cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
 
     const imageArea = processedMat.rows * processedMat.cols;
-    const dynamicMinArea = Math.max(minArea, imageArea * 0.05);
+    const scaledMinArea = minArea / (scale * scale);
+    const dynamicMinArea = Math.max(scaledMinArea, imageArea * 0.05);
 
     // Helper to find the best quadrilateral in a binary mat
     const findBestQuad = (binaryMat: any): { contour: any; area: number } | null => {

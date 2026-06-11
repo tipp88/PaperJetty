@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-06-11
+
+### Fixed
+- Fixed bug where `minArea` check was not scaled down for the resized image, causing all document edge contours to be rejected.
+
 ## [1.3.1] - 2026-06-11
 
 ### Added
