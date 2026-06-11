@@ -7,8 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-06-11
+
 ### Added
-- Settings modal shows the current frontend version
+- Floating corner magnifier for precise boundary adjustment when dragging crop handles in preview
+- Settings modal shows the current frontend version (migrated from unreleased)
+
+### Changed
+- Downscaled image processing for real-time edge detection, reducing CPU/memory overhead by up to 50x
+- Dual edge detection pipeline combining Canny edge detection and Otsu's thresholding for improved lighting resilience
+- Robust clockwise corner sorting to prevent duplicate coordinates and off-screen handles
 
 ## [1.1.1] - 2026-01-13
 

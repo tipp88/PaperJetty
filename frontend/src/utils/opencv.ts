@@ -84,100 +84,149 @@ export function detectDocumentEdges(
 ): DetectedCorners | null {
   if (!cv) throw new Error('OpenCV not loaded');
 
+  let scale = 1.0;
+  let processedMat = mat;
+  const resized = new cv.Mat();
+  const maxDim = 400;
+
+  try {
+    if (mat.cols > maxDim || mat.rows > maxDim) {
+      scale = Math.max(mat.cols, mat.rows) / maxDim;
+      const newWidth = Math.round(mat.cols / scale);
+      const newHeight = Math.round(mat.rows / scale);
+      cv.resize(mat, resized, new cv.Size(newWidth, newHeight), 0, 0, cv.INTER_AREA);
+      processedMat = resized;
+    }
+  } catch (e) {
+    console.warn('Failed to resize mat for edge detection:', e);
+    processedMat = mat;
+    scale = 1.0;
+  }
+
   const gray = new cv.Mat();
   const blurred = new cv.Mat();
   const edges = new cv.Mat();
   const dilated = new cv.Mat();
-  const contours = new cv.MatVector();
-  const hierarchy = new cv.Mat();
 
   try {
     // Convert to grayscale
-    cv.cvtColor(mat, gray, cv.COLOR_RGBA2GRAY);
+    cv.cvtColor(processedMat, gray, cv.COLOR_RGBA2GRAY);
 
     // Light blur
     cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
 
-    // Use Otsu's thresholding - perfect for white document on dark background
-    cv.threshold(blurred, edges, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
-
-    // Morphological close to fill holes, then open to remove noise
-    const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
-    cv.morphologyEx(edges, dilated, cv.MORPH_CLOSE, kernel);
-    cv.morphologyEx(dilated, dilated, cv.MORPH_OPEN, kernel);
-    kernel.delete();
-
-    // Find external contours
-    cv.findContours(
-      dilated,
-      contours,
-      hierarchy,
-      cv.RETR_EXTERNAL,
-      cv.CHAIN_APPROX_SIMPLE
-    );
-
-    // Minimum area - 5% of image
-    const imageArea = mat.rows * mat.cols;
+    const imageArea = processedMat.rows * processedMat.cols;
     const dynamicMinArea = Math.max(minArea, imageArea * 0.05);
 
-    // Collect ALL quadrilateral contours with their areas
-    const candidates: { contour: any; area: number }[] = [];
+    // Helper to find the best quadrilateral in a binary mat
+    const findBestQuad = (binaryMat: any): { contour: any; area: number } | null => {
+      const tempContours = new cv.MatVector();
+      const tempHierarchy = new cv.Mat();
+      
+      try {
+        cv.findContours(
+          binaryMat,
+          tempContours,
+          tempHierarchy,
+          cv.RETR_EXTERNAL,
+          cv.CHAIN_APPROX_SIMPLE
+        );
 
-    for (let i = 0; i < contours.size(); i++) {
-      const contour = contours.get(i);
-      const area = cv.contourArea(contour);
+        const candidates: { contour: any; area: number }[] = [];
 
-      if (area > dynamicMinArea) {
-        const perimeter = cv.arcLength(contour, true);
-        const approx = new cv.Mat();
+        for (let i = 0; i < tempContours.size(); i++) {
+          const contour = tempContours.get(i);
+          const area = cv.contourArea(contour);
 
-        // Try multiple epsilon values for polygon approximation
-        const epsilons = [0.02, 0.03, 0.04, 0.05, 0.06];
+          if (area > dynamicMinArea) {
+            const perimeter = cv.arcLength(contour, true);
+            const approx = new cv.Mat();
+            const epsilons = [0.02, 0.03, 0.04, 0.05, 0.06];
 
-        for (const eps of epsilons) {
-          cv.approxPolyDP(contour, approx, eps * perimeter, true);
+            for (const eps of epsilons) {
+              cv.approxPolyDP(contour, approx, eps * perimeter, true);
 
-          // Check if it's a quadrilateral (4 corners)
-          if (approx.rows === 4) {
-            const aspectRatio = getAspectRatio(approx);
-
-            // Relaxed aspect ratio filter
-            if (aspectRatio >= 0.2 && aspectRatio <= 5.0) {
-              candidates.push({ contour: approx.clone(), area });
+              if (approx.rows === 4) {
+                const aspectRatio = getAspectRatio(approx);
+                if (aspectRatio >= 0.2 && aspectRatio <= 5.0) {
+                  candidates.push({ contour: approx.clone(), area });
+                }
+                break;
+              }
             }
-            break;
+            approx.delete();
+          }
+          contour.delete();
+        }
+
+        let bestContour: any = null;
+        let maxArea = 0;
+
+        for (const candidate of candidates) {
+          if (candidate.area > maxArea) {
+            if (bestContour) bestContour.delete();
+            bestContour = candidate.contour;
+            maxArea = candidate.area;
+          } else {
+            candidate.contour.delete();
           }
         }
-        approx.delete();
-      }
 
-      contour.delete();
+        if (bestContour) {
+          return { contour: bestContour, area: maxArea };
+        }
+        return null;
+      } finally {
+        tempContours.delete();
+        tempHierarchy.delete();
+      }
+    };
+
+    // Pipeline 1: Canny edge detection + morphological close (robust for varying lighting)
+    cv.Canny(blurred, edges, 75, 200);
+    const kernelCanny = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
+    cv.morphologyEx(edges, dilated, cv.MORPH_CLOSE, kernelCanny);
+    kernelCanny.delete();
+
+    let result = findBestQuad(dilated);
+
+    // Pipeline 2 (Fallback): Otsu thresholding + close + open (high contrast white/black fallback)
+    if (!result) {
+      cv.threshold(blurred, edges, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
+      const kernelOtsu = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
+      cv.morphologyEx(edges, dilated, cv.MORPH_CLOSE, kernelOtsu);
+      cv.morphologyEx(dilated, dilated, cv.MORPH_OPEN, kernelOtsu);
+      kernelOtsu.delete();
+
+      result = findBestQuad(dilated);
     }
 
-    // Select the LARGEST quadrilateral (most likely to be full document)
-    let bestContour: any = null;
-    let maxArea = 0;
-
-    for (const candidate of candidates) {
-      if (candidate.area > maxArea) {
-        if (bestContour) bestContour.delete();
-        bestContour = candidate.contour;
-        maxArea = candidate.area;
-      } else {
-        candidate.contour.delete();
-      }
-    }
-
-    if (!bestContour) {
+    if (!result) {
       return null;
     }
+
+    const { contour: bestContour, area: maxArea } = result;
 
     // Extract corner points
     const corners = extractCorners(bestContour);
     bestContour.delete();
 
-    // Calculate confidence based on area ratio and rectangularity
-    const confidence = Math.min(maxArea / (imageArea * 0.5), 1);
+    // Scale corners back to original image size
+    if (scale !== 1.0) {
+      corners.topLeft.x *= scale;
+      corners.topLeft.y *= scale;
+      corners.topRight.x *= scale;
+      corners.topRight.y *= scale;
+      corners.bottomRight.x *= scale;
+      corners.bottomRight.y *= scale;
+      corners.bottomLeft.x *= scale;
+      corners.bottomLeft.y *= scale;
+    }
+
+    // Calculate confidence based on area ratio and rectangularity in original coordinates
+    const originalImageArea = mat.rows * mat.cols;
+    const originalMaxArea = maxArea * scale * scale;
+    const confidence = Math.min(originalMaxArea / (originalImageArea * 0.5), 1);
 
     return {
       ...corners,
@@ -189,8 +238,9 @@ export function detectDocumentEdges(
     blurred.delete();
     edges.delete();
     dilated.delete();
-    contours.delete();
-    hierarchy.delete();
+    if (resized && !resized.isDeleted()) {
+      resized.delete();
+    }
   }
 }
 
@@ -222,29 +272,18 @@ function extractCorners(contour: any): Omit<DetectedCorners, 'confidence'> {
 }
 
 function orderPoints(points: Array<{ x: number; y: number }>) {
-  // More robust ordering using sum and difference of coordinates
-  // This works better for tilted documents
+  // Sort by y-coordinate to get top and bottom pairs
+  const sorted = [...points].sort((a, b) => a.y - b.y);
 
-  const pts = [...points];
-
-  // Top-left has smallest sum (x + y)
-  // Bottom-right has largest sum (x + y)
-  const sums = pts.map((p, i) => ({ i, sum: p.x + p.y }));
-  sums.sort((a, b) => a.sum - b.sum);
-  const topLeftIdx = sums[0].i;
-  const bottomRightIdx = sums[3].i;
-
-  // Top-right has smallest difference (y - x), i.e., largest (x - y)
-  // Bottom-left has largest difference (y - x)
-  const diffs = pts.map((p, i) => ({ i, diff: p.y - p.x }));
-  diffs.sort((a, b) => a.diff - b.diff);
-  const topRightIdx = diffs[0].i;
-  const bottomLeftIdx = diffs[3].i;
+  // Top two points
+  const top = sorted.slice(0, 2).sort((a, b) => a.x - b.x);
+  // Bottom two points
+  const bottom = sorted.slice(2, 4).sort((a, b) => a.x - b.x);
 
   return [
-    pts[topLeftIdx],
-    pts[topRightIdx],
-    pts[bottomRightIdx],
-    pts[bottomLeftIdx]
+    top[0],    // TL
+    top[1],    // TR
+    bottom[1], // BR
+    bottom[0], // BL
   ];
 }

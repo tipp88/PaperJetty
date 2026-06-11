@@ -24,6 +24,9 @@ const COLORS = {
 export function CornerAdjuster({ imageData, initialCorners, onCornersChange }: CornerAdjusterProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const magnifierCanvasRef = useRef<HTMLCanvasElement>(null);
+
   const [corners, setCorners] = useState<[Point, Point, Point, Point]>(
     initialCorners || [
       { x: 0.1, y: 0.1 },
@@ -34,6 +37,7 @@ export function CornerAdjuster({ imageData, initialCorners, onCornersChange }: C
   );
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [dragCoords, setDragCoords] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -45,6 +49,7 @@ export function CornerAdjuster({ imageData, initialCorners, onCornersChange }: C
 
     const img = new Image();
     img.onload = () => {
+      imageRef.current = img;
       const containerWidth = container.clientWidth;
       const containerHeight = container.clientHeight;
 
@@ -81,6 +86,78 @@ export function CornerAdjuster({ imageData, initialCorners, onCornersChange }: C
     };
     img.src = imageData;
   }, [imageData, corners, draggingIndex, hoveredIndex]);
+
+  // Handle magnifier canvas rendering
+  useEffect(() => {
+    if (draggingIndex === null || !imageRef.current || !magnifierCanvasRef.current) return;
+
+    const mCanvas = magnifierCanvasRef.current;
+    const mCtx = mCanvas.getContext('2d');
+    if (!mCtx) return;
+
+    const img = imageRef.current;
+    const corner = corners[draggingIndex];
+
+    // Get position on the original image
+    const sourceX = corner.x * img.width;
+    const sourceY = corner.y * img.height;
+
+    // We want to show a region of size 40x40 from the source image, zoomed to 120x120 (3x zoom)
+    const sourceSize = 40; 
+    const destSize = 120;
+
+    mCtx.clearRect(0, 0, destSize, destSize);
+
+    let sx = sourceX - sourceSize / 2;
+    let sy = sourceY - sourceSize / 2;
+    let sw = sourceSize;
+    let sh = sourceSize;
+
+    let dx = 0;
+    let dy = 0;
+    let dw = destSize;
+    let dh = destSize;
+
+    // Handle left boundary
+    if (sx < 0) {
+      const diff = -sx;
+      dx = (diff / sourceSize) * destSize;
+      dw = dw - dx;
+      sx = 0;
+      sw = sw - diff;
+    }
+    // Handle top boundary
+    if (sy < 0) {
+      const diff = -sy;
+      dy = (diff / sourceSize) * destSize;
+      dh = dh - dy;
+      sy = 0;
+      sh = sh - diff;
+    }
+    // Handle right boundary
+    if (sx + sw > img.width) {
+      const diff = (sx + sw) - img.width;
+      dw = dw - (diff / sourceSize) * destSize;
+      sw = sw - diff;
+    }
+    // Handle bottom boundary
+    if (sy + sh > img.height) {
+      const diff = (sy + sh) - img.height;
+      dh = dh - (diff / sourceSize) * destSize;
+      sh = sh - diff;
+    }
+
+    mCtx.fillStyle = '#1c1c1e';
+    mCtx.fillRect(0, 0, destSize, destSize);
+
+    if (sw > 0 && sh > 0) {
+      try {
+        mCtx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+      } catch (e) {
+        console.warn('Failed to draw magnified region:', e);
+      }
+    }
+  }, [draggingIndex, corners]);
 
   const drawCorners = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     const scale = Math.max(1, Math.min(width, height) / 500);
@@ -210,6 +287,16 @@ export function CornerAdjuster({ imageData, initialCorners, onCornersChange }: C
     return closestIndex;
   };
 
+  const updateDragCoords = (clientX: number, clientY: number) => {
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    setDragCoords({
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+    });
+  };
+
   const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     const canvas = canvasRef.current;
@@ -223,6 +310,7 @@ export function CornerAdjuster({ imageData, initialCorners, onCornersChange }: C
     const closestIndex = getClosestCorner(x, y, 0.2);
     if (closestIndex !== null) {
       setDraggingIndex(closestIndex);
+      updateDragCoords(touch.clientX, touch.clientY);
     }
   };
 
@@ -242,10 +330,12 @@ export function CornerAdjuster({ imageData, initialCorners, onCornersChange }: C
     newCorners[draggingIndex] = { x, y };
     setCorners(newCorners);
     onCornersChange(newCorners);
+    updateDragCoords(touch.clientX, touch.clientY);
   };
 
   const handleTouchEnd = () => {
     setDraggingIndex(null);
+    setDragCoords(null);
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -259,6 +349,7 @@ export function CornerAdjuster({ imageData, initialCorners, onCornersChange }: C
     const closestIndex = getClosestCorner(x, y, 0.1);
     if (closestIndex !== null) {
       setDraggingIndex(closestIndex);
+      updateDragCoords(e.clientX, e.clientY);
     }
   };
 
@@ -284,21 +375,29 @@ export function CornerAdjuster({ imageData, initialCorners, onCornersChange }: C
     newCorners[draggingIndex] = { x: clampedX, y: clampedY };
     setCorners(newCorners);
     onCornersChange(newCorners);
+    updateDragCoords(e.clientX, e.clientY);
   };
 
   const handleMouseUp = () => {
     setDraggingIndex(null);
+    setDragCoords(null);
   };
 
   const handleMouseLeave = () => {
     setDraggingIndex(null);
     setHoveredIndex(null);
+    setDragCoords(null);
   };
+
+  const isNearTop = dragCoords && dragCoords.y < 150;
+  const magnifierTop = dragCoords 
+    ? (isNearTop ? dragCoords.y + 50 : dragCoords.y - 130)
+    : 0;
 
   return (
     <div
       ref={containerRef}
-      className="w-full h-full flex items-center justify-center"
+      className="w-full h-full flex items-center justify-center relative"
     >
       <canvas
         ref={canvasRef}
@@ -315,6 +414,26 @@ export function CornerAdjuster({ imageData, initialCorners, onCornersChange }: C
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
       />
+      {draggingIndex !== null && dragCoords && (
+        <div 
+          className="absolute pointer-events-none rounded-full border-4 border-amber-400 shadow-2xl overflow-hidden bg-carbon-900"
+          style={{
+            width: '120px',
+            height: '120px',
+            left: `${dragCoords.x - 60}px`,
+            top: `${magnifierTop}px`,
+            zIndex: 100,
+          }}
+        >
+          <canvas ref={magnifierCanvasRef} width={120} height={120} />
+          {/* Crosshair */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            <div className="absolute w-full h-[1.5px] bg-amber-400/40" />
+            <div className="absolute h-full w-[1.5px] bg-amber-400/40" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
