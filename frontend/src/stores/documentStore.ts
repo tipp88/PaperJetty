@@ -1,10 +1,88 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import type { DocumentPage, Point, EnhancementMode, ScannedDocument } from '../types/document';
 import { applyPerspectiveTransform } from '../utils/perspectiveTransform';
 import { cropWithPerspective } from '../utils/canvasCrop';
 import { detectBestEnhancement, enhanceImage } from '../utils/imageEnhancement';
 import { getOpenCV } from '../utils/opencv';
+
+// Custom StateStorage backed by IndexedDB to handle large base64 document images
+const idbStorage: StateStorage = {
+  getItem: async (name: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const request = indexedDB.open('docuscan_db', 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('store')) {
+          db.createObjectStore('store');
+        }
+      };
+      request.onsuccess = () => {
+        const db = request.result;
+        try {
+          const transaction = db.transaction('store', 'readonly');
+          const store = transaction.objectStore('store');
+          const getReq = store.get(name);
+          getReq.onsuccess = () => {
+            resolve(getReq.result || null);
+          };
+          getReq.onerror = () => resolve(null);
+        } catch (err) {
+          resolve(null);
+        }
+      };
+      request.onerror = () => resolve(null);
+    });
+  },
+  setItem: async (name: string, value: string): Promise<void> => {
+    return new Promise((resolve) => {
+      const request = indexedDB.open('docuscan_db', 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('store')) {
+          db.createObjectStore('store');
+        }
+      };
+      request.onsuccess = () => {
+        const db = request.result;
+        try {
+          const transaction = db.transaction('store', 'readwrite');
+          const store = transaction.objectStore('store');
+          store.put(value, name);
+          transaction.oncomplete = () => resolve();
+          transaction.onerror = () => resolve();
+        } catch (err) {
+          resolve();
+        }
+      };
+      request.onerror = () => resolve();
+    });
+  },
+  removeItem: async (name: string): Promise<void> => {
+    return new Promise((resolve) => {
+      const request = indexedDB.open('docuscan_db', 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('store')) {
+          db.createObjectStore('store');
+        }
+      };
+      request.onsuccess = () => {
+        const db = request.result;
+        try {
+          const transaction = db.transaction('store', 'readwrite');
+          const store = transaction.objectStore('store');
+          store.delete(name);
+          transaction.oncomplete = () => resolve();
+          transaction.onerror = () => resolve();
+        } catch (err) {
+          resolve();
+        }
+      };
+      request.onerror = () => resolve();
+    });
+  }
+};
 
 // Get default enhancement mode from settings
 function getDefaultEnhancement(): EnhancementMode | 'auto' {
@@ -338,6 +416,7 @@ export const useDocumentStore = create<DocumentStore>()(
     }),
     {
       name: 'docuscan_document_store',
+      storage: createJSONStorage(() => idbStorage),
       // Only persist non-processing states
       partialize: (state) => ({
         pages: state.pages,
