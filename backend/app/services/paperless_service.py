@@ -2,6 +2,7 @@ import httpx
 import asyncio
 from typing import List, Optional, Dict
 from app.config import settings
+from app.services.settings_service import load_settings
 
 
 async def upload_to_paperless(
@@ -175,15 +176,19 @@ async def get_paperless_tags() -> List[Dict]:
     Returns:
         List of tags with id and name
     """
-    if not settings.paperless_enabled or not settings.paperless_token:
+    user_settings = load_settings()
+    url_val = user_settings.paperlessUrl or settings.paperless_url
+    token_val = user_settings.paperlessToken or settings.paperless_token
+
+    if not url_val or not token_val:
         return []
 
-    url = f"{settings.paperless_url.rstrip('/')}/api/tags/"
+    url = f"{url_val.rstrip('/')}/api/tags/"
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.get(
             url,
-            headers={'Authorization': f'Token {settings.paperless_token}'}
+            headers={'Authorization': f'Token {token_val}'}
         )
         response.raise_for_status()
         data = response.json()
@@ -197,15 +202,19 @@ async def get_paperless_correspondents() -> List[Dict]:
     Returns:
         List of correspondents with id and name
     """
-    if not settings.paperless_enabled or not settings.paperless_token:
+    user_settings = load_settings()
+    url_val = user_settings.paperlessUrl or settings.paperless_url
+    token_val = user_settings.paperlessToken or settings.paperless_token
+
+    if not url_val or not token_val:
         return []
 
-    url = f"{settings.paperless_url.rstrip('/')}/api/correspondents/"
+    url = f"{url_val.rstrip('/')}/api/correspondents/"
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.get(
             url,
-            headers={'Authorization': f'Token {settings.paperless_token}'}
+            headers={'Authorization': f'Token {token_val}'}
         )
         response.raise_for_status()
         data = response.json()
@@ -219,15 +228,19 @@ async def get_paperless_document_types() -> List[Dict]:
     Returns:
         List of document types with id and name
     """
-    if not settings.paperless_enabled or not settings.paperless_token:
+    user_settings = load_settings()
+    url_val = user_settings.paperlessUrl or settings.paperless_url
+    token_val = user_settings.paperlessToken or settings.paperless_token
+
+    if not url_val or not token_val:
         return []
 
-    url = f"{settings.paperless_url.rstrip('/')}/api/document_types/"
+    url = f"{url_val.rstrip('/')}/api/document_types/"
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.get(
             url,
-            headers={'Authorization': f'Token {settings.paperless_token}'}
+            headers={'Authorization': f'Token {token_val}'}
         )
         response.raise_for_status()
         data = response.json()
@@ -241,32 +254,36 @@ async def test_paperless_connection() -> Dict:
     Returns:
         Dict with status and message
     """
-    if not settings.paperless_enabled:
+    user_settings = load_settings()
+    url_val = user_settings.paperlessUrl or settings.paperless_url
+    token_val = user_settings.paperlessToken or settings.paperless_token
+
+    if not url_val:
         return {
-            'status': 'disabled',
-            'message': 'Paperless-ngx integration is not enabled'
+            'status': 'error',
+            'message': 'Paperless URL is not configured'
         }
 
-    if not settings.paperless_token:
+    if not token_val:
         return {
             'status': 'error',
             'message': 'Paperless API token is not configured'
         }
 
     try:
-        url = f"{settings.paperless_url.rstrip('/')}/api/documents/"
+        url = f"{url_val.rstrip('/')}/api/documents/"
 
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(
                 url,
-                headers={'Authorization': f'Token {settings.paperless_token}'}
+                headers={'Authorization': f'Token {token_val}'}
             )
             response.raise_for_status()
 
             return {
                 'status': 'connected',
                 'message': 'Successfully connected to Paperless-ngx',
-                'url': settings.paperless_url.rstrip('/')
+                'url': url_val.rstrip('/')
             }
     except httpx.HTTPError as e:
         return {
