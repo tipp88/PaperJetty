@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// https://vite.dev/config/
+// https://vite.dev/config/ (updated for 1.3.1)
 import fs from 'fs'
 import path from 'path'
 
