@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import type { DocumentPage, Point, EnhancementMode } from '../types/document';
+import { persist } from 'zustand/middleware';
+import type { DocumentPage, Point, EnhancementMode, ScannedDocument } from '../types/document';
 import { applyPerspectiveTransform } from '../utils/perspectiveTransform';
 import { cropWithPerspective } from '../utils/canvasCrop';
 import { detectBestEnhancement, enhanceImage } from '../utils/imageEnhancement';
@@ -20,11 +21,15 @@ function getDefaultEnhancement(): EnhancementMode | 'auto' {
 }
 
 interface DocumentStore {
+  // Active document states (keeps App.tsx fully working)
   pages: DocumentPage[];
   currentPageIndex: number | null;
   isProcessing: boolean;
 
-  // Actions
+  // Queue states
+  queue: ScannedDocument[];
+
+  // Active document actions
   addPage: (originalImage: string, corners?: [Point, Point, Point, Point]) => Promise<void>;
   updatePage: (id: string, updates: Partial<DocumentPage>) => void;
   deletePage: (id: string) => void;
@@ -35,260 +40,310 @@ interface DocumentStore {
   setCurrentPage: (index: number | null) => void;
   processPage: (id: string) => Promise<void>;
   clear: () => void;
+
+  // Queue actions
+  finishActiveDocument: (title?: string, tags?: string[]) => void;
+  updateQueuedDocument: (id: string, updates: Partial<ScannedDocument>) => void;
+  deleteQueuedDocument: (id: string) => void;
+  clearQueue: () => void;
 }
 
-export const useDocumentStore = create<DocumentStore>((set, get) => ({
-  pages: [],
-  currentPageIndex: null,
-  isProcessing: false,
+export const useDocumentStore = create<DocumentStore>()(
+  persist(
+    (set, get) => ({
+      pages: [],
+      currentPageIndex: null,
+      isProcessing: false,
+      queue: [],
 
-  addPage: async (originalImage: string, corners?: [Point, Point, Point, Point]) => {
-    set({ isProcessing: true });
+      addPage: async (originalImage: string, corners?: [Point, Point, Point, Point]) => {
+        set({ isProcessing: true });
 
-    try {
-      const pageCorners = corners || [
-        { x: 0, y: 0 },
-        { x: 1, y: 0 },
-        { x: 1, y: 1 },
-        { x: 0, y: 1 },
-      ];
+        try {
+          const pageCorners = corners || [
+            { x: 0, y: 0 },
+            { x: 1, y: 0 },
+            { x: 1, y: 1 },
+            { x: 0, y: 1 },
+          ];
 
-      // Determine enhancement mode from settings
-      const defaultMode = getDefaultEnhancement();
-      let enhancementMode: EnhancementMode;
+          const defaultMode = getDefaultEnhancement();
+          let enhancementMode: EnhancementMode;
 
-      if (defaultMode === 'auto') {
-        // Auto-detect best enhancement based on image characteristics
-        enhancementMode = await detectBestEnhancement(originalImage);
-        console.log('Auto-detected enhancement mode:', enhancementMode);
-      } else {
-        enhancementMode = defaultMode;
-        console.log('Using configured enhancement mode:', enhancementMode);
-      }
-
-      const newPage: DocumentPage = {
-        id: `page-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        originalImage,
-        processedImage: originalImage, // Will be updated by processing
-        corners: pageCorners, // Normalized coordinates (0-1)
-        enhancement: enhancementMode,
-        rotation: 0,
-        timestamp: Date.now(),
-      };
-
-      set(state => ({
-        pages: [...state.pages, newPage],
-        currentPageIndex: state.pages.length,
-      }));
-
-      console.log('Page added successfully, processing...', newPage.id);
-
-      // Process the page in the background
-      await get().processPage(newPage.id);
-
-      set({ isProcessing: false });
-    } catch (error) {
-      console.error('Error adding page:', error);
-      set({ isProcessing: false });
-    }
-  },
-
-  processPage: async (id: string) => {
-    const state = get();
-    const page = state.pages.find(p => p.id === id);
-    if (!page) return;
-
-    set({ isProcessing: true });
-
-    try {
-      let processed = page.originalImage;
-
-      // Check if corners are custom (not default full image)
-      const isDefaultCorners =
-        page.corners[0].x === 0 && page.corners[0].y === 0 &&
-        page.corners[1].x === 1 && page.corners[1].y === 0 &&
-        page.corners[2].x === 1 && page.corners[2].y === 1 &&
-        page.corners[3].x === 0 && page.corners[3].y === 1;
-
-      const hasValidCorners = !isDefaultCorners;
-
-      if (hasValidCorners) {
-        // Get image dimensions to denormalize corners
-        const img = new Image();
-        await new Promise((resolve, reject) => {
-          img.onload = resolve;
-          img.onerror = reject;
-          img.src = page.originalImage;
-        });
-
-        const denormalizedCorners: [Point, Point, Point, Point] = page.corners.map(c => ({
-          x: c.x * img.width,
-          y: c.y * img.height,
-        })) as [Point, Point, Point, Point];
-
-        // Try OpenCV-based perspective correction first
-        const cv = getOpenCV();
-        if (cv) {
-          try {
-            processed = await applyPerspectiveTransform(
-              page.originalImage,
-              denormalizedCorners
-            );
-          } catch (error) {
-            processed = await cropWithPerspective(page.originalImage, page.corners);
+          if (defaultMode === 'auto') {
+            enhancementMode = await detectBestEnhancement(originalImage);
+            console.log('Auto-detected enhancement mode:', enhancementMode);
+          } else {
+            enhancementMode = defaultMode;
+            console.log('Using configured enhancement mode:', enhancementMode);
           }
-        } else {
-          processed = await cropWithPerspective(page.originalImage, page.corners);
+
+          const newPage: DocumentPage = {
+            id: `page-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            originalImage,
+            processedImage: originalImage,
+            corners: pageCorners,
+            enhancement: enhancementMode,
+            rotation: 0,
+            timestamp: Date.now(),
+          };
+
+          set(state => ({
+            pages: [...state.pages, newPage],
+            currentPageIndex: state.pages.length,
+          }));
+
+          console.log('Page added successfully, processing...', newPage.id);
+
+          await get().processPage(newPage.id);
+
+          set({ isProcessing: false });
+        } catch (error) {
+          console.error('Error adding page:', error);
+          set({ isProcessing: false });
         }
-      }
+      },
 
-      // Apply enhancement if OpenCV is available (loaded via HTML script tag)
-      let enhanced = processed;
-      if (page.enhancement !== 'color') {
-        const cv = getOpenCV();
-        if (cv) {
-          try {
-            enhanced = await enhanceImage(processed, page.enhancement);
-          } catch (error) {
-            console.error('Enhancement failed:', error);
-          }
-        }
-      }
+      processPage: async (id: string) => {
+        const state = get();
+        const page = state.pages.find(p => p.id === id);
+        if (!page) return;
 
-      // Update the page
-      set(state => ({
-        pages: state.pages.map(p =>
-          p.id === id ? { ...p, processedImage: enhanced } : p
-        ),
-        isProcessing: false,
-      }));
-    } catch (error) {
-      console.error('Error processing page:', error);
-      set({ isProcessing: false });
-    }
-  },
+        set({ isProcessing: true });
 
-  updatePage: (id: string, updates: Partial<DocumentPage>) => {
-    set(state => ({
-      pages: state.pages.map(page =>
-        page.id === id ? { ...page, ...updates } : page
-      ),
-    }));
-  },
+        try {
+          let processed = page.originalImage;
 
-  deletePage: (id: string) => {
-    set(state => {
-      const newPages = state.pages.filter(page => page.id !== id);
-      const currentIndex = state.currentPageIndex;
-      let newCurrentIndex = currentIndex;
+          const isDefaultCorners =
+            page.corners[0].x === 0 && page.corners[0].y === 0 &&
+            page.corners[1].x === 1 && page.corners[1].y === 0 &&
+            page.corners[2].x === 1 && page.corners[2].y === 1 &&
+            page.corners[3].x === 0 && page.corners[3].y === 1;
 
-      if (currentIndex !== null) {
-        if (newPages.length === 0) {
-          newCurrentIndex = null;
-        } else if (currentIndex >= newPages.length) {
-          newCurrentIndex = newPages.length - 1;
-        }
-      }
+          const hasValidCorners = !isDefaultCorners;
 
-      return {
-        pages: newPages,
-        currentPageIndex: newCurrentIndex,
-      };
-    });
-  },
+          if (hasValidCorners) {
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+              img.onload = resolve;
+              img.onerror = reject;
+              img.src = page.originalImage;
+            });
 
-  deletePages: (ids: string[]) => {
-    set(state => {
-      const idSet = new Set(ids);
-      const newPages = state.pages.filter(page => !idSet.has(page.id));
-      const currentIndex = state.currentPageIndex;
-      let newCurrentIndex = currentIndex;
+            const denormalizedCorners: [Point, Point, Point, Point] = page.corners.map(c => ({
+              x: c.x * img.width,
+              y: c.y * img.height,
+            })) as [Point, Point, Point, Point];
 
-      if (currentIndex !== null) {
-        if (newPages.length === 0) {
-          newCurrentIndex = null;
-        } else if (currentIndex >= newPages.length) {
-          newCurrentIndex = newPages.length - 1;
-        }
-      }
-
-      return {
-        pages: newPages,
-        currentPageIndex: newCurrentIndex,
-      };
-    });
-  },
-
-  replacePage: async (id: string, originalImage: string, corners?: [Point, Point, Point, Point]) => {
-    const state = get();
-    const existingPage = state.pages.find(p => p.id === id);
-    if (!existingPage) return;
-
-    set({ isProcessing: true });
-
-    try {
-      const pageCorners = corners || existingPage.corners;
-      const defaultMode = getDefaultEnhancement();
-      let enhancementMode: EnhancementMode;
-
-      if (defaultMode === 'auto') {
-        enhancementMode = await detectBestEnhancement(originalImage);
-      } else {
-        enhancementMode = defaultMode;
-      }
-
-      // Update the page with new image
-      set(state => ({
-        pages: state.pages.map(p =>
-          p.id === id
-            ? {
-                ...p,
-                originalImage,
-                processedImage: originalImage,
-                corners: pageCorners,
-                enhancement: enhancementMode,
-                timestamp: Date.now(),
+            const cv = getOpenCV();
+            if (cv) {
+              try {
+                processed = await applyPerspectiveTransform(
+                  page.originalImage,
+                  denormalizedCorners
+                );
+              } catch (error) {
+                processed = await cropWithPerspective(page.originalImage, page.corners);
               }
-            : p
-        ),
-      }));
+            } else {
+              processed = await cropWithPerspective(page.originalImage, page.corners);
+            }
+          }
 
-      // Process the updated page
-      await get().processPage(id);
-      set({ isProcessing: false });
-    } catch (error) {
-      console.error('Error replacing page:', error);
-      set({ isProcessing: false });
-    }
-  },
+          let enhanced = processed;
+          if (page.enhancement !== 'color') {
+            const cv = getOpenCV();
+            if (cv) {
+              try {
+                enhanced = await enhanceImage(processed, page.enhancement);
+              } catch (error) {
+                console.error('Enhancement failed:', error);
+              }
+            }
+          }
 
-  reorderPages: (fromIndex: number, toIndex: number) => {
-    set(state => {
-      const pages = [...state.pages];
-      const [removed] = pages.splice(fromIndex, 1);
-      pages.splice(toIndex, 0, removed);
-
-      return { pages };
-    });
-  },
-
-  rotatePage: (id: string) => {
-    set(state => ({
-      pages: state.pages.map(page => {
-        if (page.id === id) {
-          const newRotation = ((page.rotation + 90) % 360) as 0 | 90 | 180 | 270;
-          return { ...page, rotation: newRotation };
+          set(state => ({
+            pages: state.pages.map(p =>
+              p.id === id ? { ...p, processedImage: enhanced } : p
+            ),
+            isProcessing: false,
+          }));
+        } catch (error) {
+          console.error('Error processing page:', error);
+          set({ isProcessing: false });
         }
-        return page;
+      },
+
+      updatePage: (id: string, updates: Partial<DocumentPage>) => {
+        set(state => ({
+          pages: state.pages.map(page =>
+            page.id === id ? { ...page, ...updates } : page
+          ),
+        }));
+      },
+
+      deletePage: (id: string) => {
+        set(state => {
+          const newPages = state.pages.filter(page => page.id !== id);
+          const currentIndex = state.currentPageIndex;
+          let newCurrentIndex = currentIndex;
+
+          if (currentIndex !== null) {
+            if (newPages.length === 0) {
+              newCurrentIndex = null;
+            } else if (currentIndex >= newPages.length) {
+              newCurrentIndex = newPages.length - 1;
+            }
+          }
+
+          return {
+            pages: newPages,
+            currentPageIndex: newCurrentIndex,
+          };
+        });
+      },
+
+      deletePages: (ids: string[]) => {
+        set(state => {
+          const idSet = new Set(ids);
+          const newPages = state.pages.filter(page => !idSet.has(page.id));
+          const currentIndex = state.currentPageIndex;
+          let newCurrentIndex = currentIndex;
+
+          if (currentIndex !== null) {
+            if (newPages.length === 0) {
+              newCurrentIndex = null;
+            } else if (currentIndex >= newPages.length) {
+              newCurrentIndex = newPages.length - 1;
+            }
+          }
+
+          return {
+            pages: newPages,
+            currentPageIndex: newCurrentIndex,
+          };
+        });
+      },
+
+      replacePage: async (id: string, originalImage: string, corners?: [Point, Point, Point, Point]) => {
+        const state = get();
+        const existingPage = state.pages.find(p => p.id === id);
+        if (!existingPage) return;
+
+        set({ isProcessing: true });
+
+        try {
+          const pageCorners = corners || existingPage.corners;
+          const defaultMode = getDefaultEnhancement();
+          let enhancementMode: EnhancementMode;
+
+          if (defaultMode === 'auto') {
+            enhancementMode = await detectBestEnhancement(originalImage);
+          } else {
+            enhancementMode = defaultMode;
+          }
+
+          set(state => ({
+            pages: state.pages.map(p =>
+              p.id === id
+                ? {
+                    ...p,
+                    originalImage,
+                    processedImage: originalImage,
+                    corners: pageCorners,
+                    enhancement: enhancementMode,
+                    timestamp: Date.now(),
+                  }
+                : p
+            ),
+          }));
+
+          await get().processPage(id);
+          set({ isProcessing: false });
+        } catch (error) {
+          console.error('Error replacing page:', error);
+          set({ isProcessing: false });
+        }
+      },
+
+      reorderPages: (fromIndex: number, toIndex: number) => {
+        set(state => {
+          const pages = [...state.pages];
+          const [removed] = pages.splice(fromIndex, 1);
+          pages.splice(toIndex, 0, removed);
+
+          return { pages };
+        });
+      },
+
+      rotatePage: (id: string) => {
+        set(state => ({
+          pages: state.pages.map(page => {
+            if (page.id === id) {
+              const newRotation = ((page.rotation + 90) % 360) as 0 | 90 | 180 | 270;
+              return { ...page, rotation: newRotation };
+            }
+            return page;
+          }),
+        }));
+      },
+
+      setCurrentPage: (index: number | null) => {
+        set({ currentPageIndex: index });
+      },
+
+      clear: () => {
+        set({ pages: [], currentPageIndex: null });
+      },
+
+      // Queue Actions
+      finishActiveDocument: (title?: string, tags?: string[]) => {
+        const state = get();
+        if (state.pages.length === 0) return;
+
+        const defaultTitle = `Scan ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        const newDoc: ScannedDocument = {
+          id: `doc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          title: title || defaultTitle,
+          pages: [...state.pages],
+          tags: tags || [],
+          status: 'queued',
+          timestamp: Date.now(),
+        };
+
+        set(state => ({
+          queue: [...state.queue, newDoc],
+          pages: [],
+          currentPageIndex: null,
+        }));
+      },
+
+      updateQueuedDocument: (id: string, updates: Partial<ScannedDocument>) => {
+        set(state => ({
+          queue: state.queue.map(doc =>
+            doc.id === id ? { ...doc, ...updates } : doc
+          ),
+        }));
+      },
+
+      deleteQueuedDocument: (id: string) => {
+        set(state => ({
+          queue: state.queue.filter(doc => doc.id !== id),
+        }));
+      },
+
+      clearQueue: () => {
+        set({ queue: [] });
+      },
+    }),
+    {
+      name: 'docuscan_document_store',
+      // Only persist non-processing states
+      partialize: (state) => ({
+        pages: state.pages,
+        currentPageIndex: state.currentPageIndex,
+        queue: state.queue,
       }),
-    }));
-  },
-
-  setCurrentPage: (index: number | null) => {
-    set({ currentPageIndex: index });
-  },
-
-  clear: () => {
-    set({ pages: [], currentPageIndex: null });
-  },
-}));
+    }
+  )
+);

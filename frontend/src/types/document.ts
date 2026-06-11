@@ -23,3 +23,15 @@ export interface CameraConstraints {
     aspectRatio: { ideal: number };
   };
 }
+
+export interface ScannedDocument {
+  id: string;
+  title: string;
+  pages: DocumentPage[];
+  tags: string[];
+  status: 'draft' | 'queued' | 'uploading' | 'completed' | 'failed';
+  progress?: number;
+  error?: string;
+  timestamp: number;
+}
+

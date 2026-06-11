@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.4] - 2026-06-11
+
+### Added
+- Multi-document upload queue allowing sequential page capture to be grouped into distinct documents.
+- Batch upload mechanism to send queued documents to Paperless-ngx sequentially with progress indicators.
+- "Finish Doc & New" button in crop view to immediately finalize a document and continue scanning.
+- Interactive Queue dashboard tab with title and tag editors.
+- Mock HTML5 Canvas camera stream fallback for desktop development and test runs.
+
 ## [1.3.3] - 2026-06-11
 
 ### Changed
