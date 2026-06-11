@@ -12,7 +12,7 @@ interface CameraCaptureProps {
 const AUTO_CAPTURE_DELAY_MS = 1200;
 const AUTO_CAPTURE_MIN_CONFIDENCE = 0.6;
 const AUTO_CAPTURE_MIN_STABILITY = 0.6;
-const AUTO_CAPTURE_MARGIN_RATIO = 0.04;
+const AUTO_CAPTURE_MARGIN_RATIO = 0.015;
 
 const areCornersWithinBounds = (
   corners: DetectedCorners,

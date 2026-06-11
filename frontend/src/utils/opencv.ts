@@ -273,6 +273,16 @@ export function detectDocumentEdges(
 
     const { contour: bestContour, area: maxArea } = result;
 
+    // Calculate confidence based on rectangularity (extent) and area ratio (so narrow receipts are not penalized)
+    const rect = cv.minAreaRect(bestContour);
+    const rectArea = rect.size.width * rect.size.height;
+    const extent = rectArea > 0 ? Math.min(cv.contourArea(bestContour) / rectArea, 1) : 0;
+    
+    const areaRatio = maxArea / imageArea;
+    const areaFactor = areaRatio >= 0.10 ? 1.0 : 0.5 + (areaRatio / 0.10) * 0.5;
+    
+    const confidence = extent * areaFactor;
+
     // Extract corner points
     const corners = extractCorners(bestContour);
     bestContour.delete();
@@ -288,11 +298,6 @@ export function detectDocumentEdges(
       corners.bottomLeft.x *= scale;
       corners.bottomLeft.y *= scale;
     }
-
-    // Calculate confidence based on area ratio and rectangularity in original coordinates
-    const originalImageArea = mat.rows * mat.cols;
-    const originalMaxArea = maxArea * scale * scale;
-    const confidence = Math.min(originalMaxArea / (originalImageArea * 0.5), 1);
 
     return {
       ...corners,

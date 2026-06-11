@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.6] - 2026-06-11
+
+### Changed
+- Refined edge detection confidence score to use shape rectangularity (solidity/extent) and soft area scaling rather than global frame area ratio, ensuring long/narrow receipts score high confidence.
+- Decreased `AUTO_CAPTURE_MARGIN_RATIO` from 4% to 1.5% to allow auto-capture to trigger even when a long document spans almost the entire height of the viewport.
+
 ## [1.3.5] - 2026-06-11
 
 ### Changed
