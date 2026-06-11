@@ -371,7 +371,7 @@ function App() {
   const previewPageNumber = previewPageId ? pages.findIndex(p => p.id === previewPageId) + 1 : 0;
 
   return (
-    <div className="w-full h-screen flex flex-col bg-carbon-950 noise-overlay">
+    <div className="w-full h-[100dvh] flex flex-col bg-carbon-950 noise-overlay">
       {/* Header */}
       <header className="header px-4 py-3 flex items-center justify-between safe-top">
         <div className="flex items-center gap-3">
@@ -501,8 +501,8 @@ function App() {
 
         {/* Review View - Document Pages */}
         {view === 'review' && (
-          <div className="w-full h-full overflow-y-auto p-4 animate-fade-in scrollbar-hide">
-            <div className="max-w-5xl mx-auto pb-24">
+          <div className="w-full h-full overflow-y-auto px-6 py-4 sm:px-8 animate-fade-in scrollbar-hide">
+            <div className="max-w-5xl mx-auto pb-36">
               {/* Selection Mode Header */}
               {selectionMode ? (
                 <SelectionModeHeader
@@ -600,7 +600,7 @@ function App() {
 
         {/* Export View */}
         {view === 'export' && (
-          <div className="w-full h-full flex items-center justify-center p-4 animate-fade-in">
+          <div className="w-full h-full flex items-center justify-center px-6 py-4 sm:px-8 animate-fade-in">
             <div className="card card-elevated p-8 max-w-md w-full">
               {/* Header */}
               <div className="mb-8">
@@ -674,8 +674,8 @@ function App() {
 
         {/* Queue View */}
         {view === 'queue' && (
-          <div className="w-full h-full overflow-y-auto p-4 animate-fade-in scrollbar-hide">
-            <div className="max-w-5xl mx-auto pb-24">
+          <div className="w-full h-full overflow-y-auto px-6 py-4 sm:px-8 animate-fade-in scrollbar-hide">
+            <div className="max-w-5xl mx-auto pb-36">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div>
                   <h2 className="font-display text-2xl text-carbon-100 mb-1">Upload Queue</h2>

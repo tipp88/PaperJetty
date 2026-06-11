@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.7] - 2026-06-11
+
+### Changed
+- Configured root wrapper container to use Dynamic Viewport Height (`h-[100dvh]`) to prevent browser nav bars from pushing the bottom UI out of bounds.
+- Increased spacing-bottom (`pb-36`) in the scrollable containers for Review and Queue views to ensure bottom action buttons are scrollable clear of system home indicator bars.
+- Applied responsive horizontal padding (`px-6 py-4 sm:px-8`) across Review, Queue, and Export screens to ensure a neat margin on mobile phones with curved screen edges.
+
 ## [1.3.6] - 2026-06-11
 
 ### Changed
