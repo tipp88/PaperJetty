@@ -343,18 +343,50 @@ function extractCorners(contour: any): Omit<DetectedCorners, 'confidence'> {
 }
 
 function orderPoints(points: Array<{ x: number; y: number }>) {
-  // Sort by y-coordinate to get top and bottom pairs
-  const sorted = [...points].sort((a, b) => a.y - b.y);
+  if (points.length !== 4) return points;
 
-  // Top two points
-  const top = sorted.slice(0, 2).sort((a, b) => a.x - b.x);
-  // Bottom two points
-  const bottom = sorted.slice(2, 4).sort((a, b) => a.x - b.x);
+  // Step 1: Find centroid
+  const cx = points.reduce((sum, p) => sum + p.x, 0) / 4;
+  const cy = points.reduce((sum, p) => sum + p.y, 0) / 4;
 
-  return [
-    top[0],    // TL
-    top[1],    // TR
-    bottom[1], // BR
-    bottom[0], // BL
-  ];
+  // Step 2: Sort points clockwise relative to centroid
+  // Under HTML canvas coordinate system (y-down):
+  // TL is in quadrant 3 (angle ~ -135 deg / -2.35 rad)
+  // TR is in quadrant 4 (angle ~ -45 deg / -0.78 rad)
+  // BR is in quadrant 1 (angle ~ 45 deg / 0.78 rad)
+  // BL is in quadrant 2 (angle ~ 135 deg / 2.35 rad)
+  // Sorting ascending by Math.atan2(y - cy, x - cx) yields TL -> TR -> BR -> BL
+  const sorted = [...points].sort((a, b) => {
+    const angleA = Math.atan2(a.y - cy, a.x - cx);
+    const angleB = Math.atan2(b.y - cy, b.x - cx);
+    return angleA - angleB;
+  });
+
+  // Step 3: Identify the top-left corner using min(x + y).
+  // In case of ties, choose the one with the smaller Y coordinate.
+  let tlIndex = 0;
+  let minSum = Infinity;
+  let minYVal = Infinity;
+
+  for (let i = 0; i < 4; i++) {
+    const sum = sorted[i].x + sorted[i].y;
+    if (sum < minSum) {
+      minSum = sum;
+      minYVal = sorted[i].y;
+      tlIndex = i;
+    } else if (sum === minSum) {
+      if (sorted[i].y < minYVal) {
+        minYVal = sorted[i].y;
+        tlIndex = i;
+      }
+    }
+  }
+
+  // Step 4: Reorder the array starting from top-left, going clockwise
+  const ordered = [];
+  for (let i = 0; i < 4; i++) {
+    ordered.push(sorted[(tlIndex + i) % 4]);
+  }
+
+  return ordered;
 }

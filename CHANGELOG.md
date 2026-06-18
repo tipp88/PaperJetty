@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.8] - 2026-06-18
+
+### Fixed
+- Fixed extreme aspect ratio distortion ("stur rechteckig" text stretching) when processing trapezoidal documents. The perspective algorithm now uses the maximum edge lengths instead of averages, which correctly un-tilts the document without squishing the text.
+- Fixed document rotation and mapping errors by replacing the flawed y-x corner sorting algorithm in the edge detector with a robust centroid-based method.
+- Added a 2500px maximum resolution limit to the perspective transform to prevent silent OpenCV Out-Of-Memory fallback crops on high-resolution smartphone photos.
+
 ## [1.3.7] - 2026-06-11
 
 ### Changed

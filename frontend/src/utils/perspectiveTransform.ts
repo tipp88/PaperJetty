@@ -24,46 +24,59 @@ export async function applyPerspectiveTransform(
     const img = new Image();
     img.onload = () => {
       try {
+        // Limit max dimensions to prevent OpenCV WebAssembly OOM on high-res mobile photos
+        const MAX_DIMENSION = 2500;
+        let scaleFactor = 1;
+        let processWidth = img.width;
+        let processHeight = img.height;
+
+        if (img.width > MAX_DIMENSION || img.height > MAX_DIMENSION) {
+          scaleFactor = MAX_DIMENSION / Math.max(img.width, img.height);
+          processWidth = Math.round(img.width * scaleFactor);
+          processHeight = Math.round(img.height * scaleFactor);
+        }
+
         // Create canvas to load the image
         const inputCanvas = document.createElement('canvas');
-        inputCanvas.width = img.width;
-        inputCanvas.height = img.height;
+        inputCanvas.width = processWidth;
+        inputCanvas.height = processHeight;
         const inputCtx = inputCanvas.getContext('2d');
         if (!inputCtx) throw new Error('Failed to get canvas context');
 
-        inputCtx.drawImage(img, 0, 0);
+        inputCtx.drawImage(img, 0, 0, processWidth, processHeight);
 
         // Convert to OpenCV Mat
         const src = cv.imread(inputCanvas);
 
-        // Define source points (the detected corners)
+        // Scale the input corners to match the process resolution
+        // Use corners directly - they are exactly as the user specified them
         const srcPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
-          corners[0].x, corners[0].y, // top-left
-          corners[1].x, corners[1].y, // top-right
-          corners[2].x, corners[2].y, // bottom-right
-          corners[3].x, corners[3].y, // bottom-left
+          corners[0].x * scaleFactor, corners[0].y * scaleFactor, // top-left
+          corners[1].x * scaleFactor, corners[1].y * scaleFactor, // top-right
+          corners[2].x * scaleFactor, corners[2].y * scaleFactor, // bottom-right
+          corners[3].x * scaleFactor, corners[3].y * scaleFactor, // bottom-left
         ]);
 
         // Calculate output dimensions if not provided
         if (!outputWidth || !outputHeight) {
-          // Estimate document dimensions from corners
+          // Use Math.max instead of average to prevent severe aspect ratio distortion (squishing)
+          // on heavily tilted/foreshortened documents
           const width1 = distance(corners[0], corners[1]);
           const width2 = distance(corners[3], corners[2]);
           const height1 = distance(corners[0], corners[3]);
           const height2 = distance(corners[1], corners[2]);
 
-          const avgWidth = (width1 + width2) / 2;
-          const avgHeight = (height1 + height2) / 2;
+          const maxWidth = Math.max(width1, width2) * scaleFactor;
+          const maxHeight = Math.max(height1, height2) * scaleFactor;
 
-          // Use actual dimensions or default to A4 aspect ratio (1:1.414)
-          outputWidth = Math.round(avgWidth);
-          outputHeight = Math.round(avgHeight);
+          outputWidth = Math.round(maxWidth);
+          outputHeight = Math.round(maxHeight);
 
-          // Ensure minimum size
-          const minDimension = 800;
-          if (outputWidth < minDimension) {
-            const scale = minDimension / outputWidth;
-            outputWidth = minDimension;
+          // Ensure minimum size proportional to output
+          const minDimension = Math.min(800, MAX_DIMENSION);
+          if (outputWidth < minDimension && outputHeight < minDimension) {
+            const scale = minDimension / Math.max(outputWidth, outputHeight);
+            outputWidth = Math.round(outputWidth * scale);
             outputHeight = Math.round(outputHeight * scale);
           }
         }
