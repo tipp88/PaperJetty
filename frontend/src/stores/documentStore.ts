@@ -84,19 +84,6 @@ const idbStorage: StateStorage = {
   }
 };
 
-// Get default enhancement mode from settings
-function getDefaultEnhancement(): EnhancementMode | 'auto' {
-  try {
-    const stored = localStorage.getItem('docuscan_settings');
-    if (stored) {
-      const settings = JSON.parse(stored);
-      return settings.defaultEnhancement || 'auto';
-    }
-  } catch (e) {
-    console.error('Failed to read enhancement setting:', e);
-  }
-  return 'auto'; // Fallback
-}
 
 interface DocumentStore {
   // Active document states (keeps App.tsx fully working)
@@ -145,7 +132,19 @@ export const useDocumentStore = create<DocumentStore>()(
             { x: 0, y: 1 },
           ];
 
-          const defaultMode = getDefaultEnhancement();
+          let defaultMode: EnhancementMode | 'auto' = 'auto';
+          try {
+            const res = await fetch('/api/settings');
+            if (res.ok) {
+              const settings = await res.json();
+              if (settings.defaultEnhancement) {
+                defaultMode = settings.defaultEnhancement;
+              }
+            }
+          } catch (e) {
+            console.error('Failed to fetch enhancement setting:', e);
+          }
+
           let enhancementMode: EnhancementMode;
 
           if (defaultMode === 'auto') {
@@ -312,7 +311,19 @@ export const useDocumentStore = create<DocumentStore>()(
 
         try {
           const pageCorners = corners || existingPage.corners;
-          const defaultMode = getDefaultEnhancement();
+          let defaultMode: EnhancementMode | 'auto' = 'auto';
+          try {
+            const res = await fetch('/api/settings');
+            if (res.ok) {
+              const settings = await res.json();
+              if (settings.defaultEnhancement) {
+                defaultMode = settings.defaultEnhancement;
+              }
+            }
+          } catch (e) {
+            console.error('Failed to fetch enhancement setting:', e);
+          }
+
           let enhancementMode: EnhancementMode;
 
           if (defaultMode === 'auto') {

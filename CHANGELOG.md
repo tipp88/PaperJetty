@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.9] - 2026-07-08
+
+### Fixed
+- Fixed an issue where the image processing mode selected in the Settings dialog (e.g. "Color") was ignored when adding or replacing pages, causing the app to always fall back to an auto-detected grayscale filter. The document store now correctly queries the backend API for the default enhancement setting instead of checking the stale local storage.
+
 ## [1.3.8] - 2026-06-18
 
 ### Fixed
