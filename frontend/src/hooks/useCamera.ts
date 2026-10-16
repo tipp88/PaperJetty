@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { captureBestFrame, type CaptureOptions } from '../utils/captureBestFrame';
 
 export function useCamera() {
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -126,21 +127,8 @@ export function useCamera() {
     }
   }, [stream, hasFlash, flashOn]);
 
-  const captureImage = useCallback((): string | null => {
-    if (!videoRef.current) return null;
-
-    const video = videoRef.current;
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Use maximum quality for initial capture (0.99 - best quality before diminishing returns)
-    return canvas.toDataURL('image/jpeg', 0.99);
+  const captureImage = useCallback(async (options: CaptureOptions) => {
+    return videoRef.current ? captureBestFrame(videoRef.current, options) : null;
   }, []);
 
   // Attach stream to video element when it changes

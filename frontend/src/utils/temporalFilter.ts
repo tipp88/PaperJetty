@@ -1,3 +1,5 @@
+import { cornerMotion, MAX_CAPTURE_MOTION } from './captureQuality.ts';
+
 /**
  * Temporal filtering to smooth jittery corner detection
  */
@@ -75,6 +77,10 @@ export class TemporalFilter {
     }
 
     // Reset missed frame counter
+    if (this.missedFrames > 0) {
+      // Old overlay positions must not count as fresh stability after a gap.
+      this.history = [];
+    }
     this.missedFrames = 0;
 
     // Add to history
@@ -143,20 +149,25 @@ export class TemporalFilter {
   }
 
   /**
-   * Check if detection is stable - just need 2 frames!
+   * Require fresh detections with little motion across the entire window.
    */
   isStable(): boolean {
-    return this.history.length >= 2;
+    return this.getStability() >= 0.6;
   }
 
   /**
    * Get stability as a percentage (0-1)
    */
   getStability(): number {
-    if (this.missedFrames > 0) {
-      return Math.max(0, (this.history.length - this.missedFrames) / this.maxHistory);
+    if (this.missedFrames > 0 || this.history.length < Math.min(4, this.maxHistory)) return 0;
+    let motion = 0;
+    for (let i = 0; i < this.history.length; i++) {
+      for (let j = i + 1; j < this.history.length; j++) {
+        motion = Math.max(motion, cornerMotion(this.history[i], this.history[j]));
+      }
     }
-    return this.history.length / this.maxHistory;
+    if (!Number.isFinite(motion) || motion > MAX_CAPTURE_MOTION) return 0;
+    return 1 - 0.4 * motion / MAX_CAPTURE_MOTION;
   }
 }
 

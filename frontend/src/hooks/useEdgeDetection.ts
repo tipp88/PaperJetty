@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { TemporalFilter, FrameRateLimiter } from '../utils/temporalFilter';
-import { getOpenCV, detectDocumentEdges, type DetectedCorners } from '../utils/opencv';
+import { TemporalFilter } from '../utils/temporalFilter';
+import { getOpenCV, type DetectedCorners } from '../utils/opencv';
+import { detectFrameCorners } from '../utils/frameDetection';
 
 interface EdgeDetectionOptions {
   enabled?: boolean;
@@ -20,13 +21,15 @@ export function useEdgeDetection(
     historySize = 5,
   } = options;
 
-  const [corners, setCorners] = useState<DetectedCorners | null>(null);
+  const [detection, setDetection] = useState<{ corners: DetectedCorners | null; isStable: boolean; stability: number }>({
+    corners: null, isStable: false, stability: 0,
+  });
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const temporalFilterRef = useRef<TemporalFilter | null>(null);
-  const frameRateLimiterRef = useRef<FrameRateLimiter | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const lastFrameRef = useRef({ mediaTime: -1, time: -Infinity });
   const rafIdRef = useRef<number | null>(null);
 
   // Initialize filters and check for OpenCV
@@ -39,21 +42,20 @@ export function useEdgeDetection(
     // Create temporal filter
     temporalFilterRef.current = new TemporalFilter(historySize);
 
-    // Create frame rate limiter
-    frameRateLimiterRef.current = new FrameRateLimiter(targetFps);
-
-    // Check if OpenCV is available (loaded via HTML script tag)
-    const cv = getOpenCV();
-    if (cv) {
+    // OpenCV can finish loading after the camera is already running.
+    const checkReady = () => {
+      if (!getOpenCV()) return false;
       setIsInitialized(true);
       setError(null);
-    } else {
-      // OpenCV not ready yet - will be checked again when processing starts
-      setError('Edge detection waiting for OpenCV');
-      setIsInitialized(false);
-    }
+      return true;
+    };
+    const ready = checkReady();
+    const readyTimer = ready ? null : window.setInterval(() => {
+      if (checkReady()) window.clearInterval(readyTimer!);
+    }, 100);
 
     return () => {
+      if (readyTimer !== null) window.clearInterval(readyTimer);
       if (rafIdRef.current !== null) {
         window.clearInterval(rafIdRef.current);
         rafIdRef.current = null;
@@ -61,53 +63,32 @@ export function useEdgeDetection(
     };
   }, [enabled, historySize, targetFps]);
 
-  // Process a single frame
+  // Analyze distinct decoded frames at low resolution; save native pixels only
+  // during capture. Publish corners and stability together from the same update.
   const processFrame = useCallback(() => {
-    if (!videoRef.current || !isInitialized || isProcessing) {
-      return;
-    }
-
     const video = videoRef.current;
-
-    // Check if video is ready
-    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-      return;
-    }
-
-    // Capture frame
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      return;
-    }
-
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Detect edges
-    setIsProcessing(true);
-
-    try {
-      const cv = getOpenCV();
-      if (cv) {
-        const mat = cv.imread(canvas);
-        const detectedCorners = detectDocumentEdges(mat, minArea);
-        mat.delete();
-
-        // Apply temporal filtering
-        const smoothedCorners = temporalFilterRef.current?.update(
-          detectedCorners
-        ) || detectedCorners;
-        setCorners(smoothedCorners);
+    const filter = temporalFilterRef.current;
+    if (!video || !isInitialized || !filter) return;
+    const now = performance.now();
+    if (now - lastFrameRef.current.time > 300) filter.reset();
+    if (video.readyState < 2 || !video.videoWidth || !video.videoHeight ||
+        video.currentTime === lastFrameRef.current.mediaTime) {
+      if (now - lastFrameRef.current.time > 300) {
+        setDetection({ corners: null, isStable: false, stability: 0 });
       }
+      return;
+    }
+    lastFrameRef.current = { mediaTime: video.currentTime, time: now };
+    const canvas = canvasRef.current ??= document.createElement('canvas');
+    let detectedCorners: DetectedCorners | null = null;
+    try {
+      detectedCorners = detectFrameCorners(video, video.videoWidth, video.videoHeight, canvas, minArea);
     } catch (err) {
       console.warn('Edge detection error:', err);
-    } finally {
-      setIsProcessing(false);
     }
-  }, [videoRef, isInitialized, isProcessing, minArea]);
+    const corners = filter.update(detectedCorners);
+    setDetection({ corners, isStable: filter.isStable(), stability: filter.getStability() });
+  }, [videoRef, isInitialized, minArea]);
 
   // Start/stop detection using setInterval (more controlled than RAF)
   const startDetection = useCallback(() => {
@@ -118,7 +99,8 @@ export function useEdgeDetection(
     }
 
     temporalFilterRef.current?.reset();
-    setCorners(null);
+    lastFrameRef.current = { mediaTime: -1, time: -Infinity };
+    setDetection({ corners: null, isStable: false, stability: 0 });
 
     // Run at fixed FPS using setInterval (more predictable than RAF)
     const fps = targetFps || 5; // Default to 5 FPS for safety
@@ -135,21 +117,14 @@ export function useEdgeDetection(
       rafIdRef.current = null;
     }
     temporalFilterRef.current?.reset();
-    setCorners(null);
-    setIsProcessing(false);
+    lastFrameRef.current = { mediaTime: -1, time: -Infinity };
+    setDetection({ corners: null, isStable: false, stability: 0 });
   }, []);
 
-  // Get stability info
-  const isStable = temporalFilterRef.current?.isStable() || false;
-  const stability = temporalFilterRef.current?.getStability() || 0;
-
   return {
-    corners,
+    ...detection,
     isInitialized,
     error,
-    isProcessing,
-    isStable,
-    stability,
     startDetection,
     stopDetection,
   };

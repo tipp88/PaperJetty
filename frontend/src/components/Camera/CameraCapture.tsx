@@ -1,36 +1,14 @@
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useCamera } from '../../hooks/useCamera';
 import { useEdgeDetection } from '../../hooks/useEdgeDetection';
 import { EdgeDetector } from './EdgeDetector';
 import type { DetectedCorners } from '../../utils/opencv';
+import { captureBoundsOk } from '../../utils/captureQuality';
 
 interface CameraCaptureProps {
   onCapture: (imageData: string, detectedCorners?: DetectedCorners | null) => void;
   onError?: (error: string) => void;
 }
-
-const AUTO_CAPTURE_DELAY_MS = 1200;
-const AUTO_CAPTURE_MIN_CONFIDENCE = 0.6;
-const AUTO_CAPTURE_MIN_STABILITY = 0.6;
-const AUTO_CAPTURE_MARGIN_RATIO = 0.015;
-
-const areCornersWithinBounds = (
-  corners: DetectedCorners,
-  width: number,
-  height: number,
-  marginRatio: number
-) => {
-  const marginX = width * marginRatio;
-  const marginY = height * marginRatio;
-  const points = [corners.topLeft, corners.topRight, corners.bottomRight, corners.bottomLeft];
-
-  return points.every((point) =>
-    point.x >= marginX &&
-    point.x <= width - marginX &&
-    point.y >= marginY &&
-    point.y <= height - marginY
-  );
-};
 
 // Flash icon
 const FlashIcon = ({ on }: { on: boolean }) => (
@@ -61,13 +39,11 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
   // Edge detection state - delayed start to let camera stabilize
   const [enableEdgeDetection, setEnableEdgeDetection] = useState(false);
 
-  // Store detected corners in ref to avoid re-render loops
-  const detectedCornersRef = useRef<DetectedCorners | null>(null);
-
-  // Auto-capture state
-  const [autoCapturePending, setAutoCapturePending] = useState(false);
-  const autoCaptureTriggeredRef = useRef(false);
-  const autoCaptureTimerRef = useRef<number | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [captureMessage, setCaptureMessage] = useState('');
+  const captureControllerRef = useRef<AbortController | null>(null);
+  const captureCompleteRef = useRef(false);
+  const retryAfterRef = useRef(0);
 
   // Edge detection hook
   const {
@@ -114,89 +90,54 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
     }
   }, [enableEdgeDetection, edgeDetectionReady, stream, startDetection, stopDetection]);
 
-  // Store corners in ref (avoids re-render loops in parent)
-  useEffect(() => {
-    detectedCornersRef.current = corners;
-  }, [corners]);
-
-  // Auto-capture immediately when stable (no timer needed - stability means consistent frames)
-  useEffect(() => {
-    // Don't auto-capture twice
-    if (autoCaptureTriggeredRef.current) {
-      return;
-    }
-
-    // Need corners and stability
-    if (!corners || !isStable || !videoRef.current) {
-      if (autoCaptureTimerRef.current !== null) {
-        window.clearTimeout(autoCaptureTimerRef.current);
-        autoCaptureTimerRef.current = null;
+  const handleCapture = useCallback(async (automatic = false) => {
+    // A ref closes the gap before React renders the disabled shutter button.
+    if (captureControllerRef.current || captureCompleteRef.current) return;
+    const controller = new AbortController();
+    captureControllerRef.current = controller;
+    setIsCapturing(true);
+    setCaptureMessage('');
+    try {
+      const result = await captureImage({ automatic, signal: controller.signal });
+      if (controller.signal.aborted) return;
+      if (result) {
+        captureCompleteRef.current = true;
+        onCapture(result.imageData, result.corners);
+      } else {
+        setCaptureMessage(automatic
+          ? 'No sharp frame yet — add light or tap to capture'
+          : 'Camera not ready — please try again');
       }
-      setAutoCapturePending(false);
-      return;
+    } catch (err) {
+      if (!controller.signal.aborted) {
+        captureCompleteRef.current = false;
+        console.error('Capture failed:', err);
+        setCaptureMessage('Capture failed — please try again');
+      }
+    } finally {
+      if (captureControllerRef.current === controller) captureControllerRef.current = null;
+      if (!controller.signal.aborted) {
+        retryAfterRef.current = performance.now() + 1200;
+        setIsCapturing(false);
+      }
     }
+  }, [captureImage, onCapture]);
 
+  // Start a short burst once movement has settled. The burst independently
+  // checks fresh corners and sharpness instead of trusting this preview state.
+  useEffect(() => {
     const video = videoRef.current;
-    if (!video.videoWidth || !video.videoHeight) {
-      setAutoCapturePending(false);
-      return;
+    if (isCapturing || captureCompleteRef.current || performance.now() < retryAfterRef.current) return;
+    if (video && corners && isStable && corners.confidence >= 0.6 &&
+        captureBoundsOk(corners, video.videoWidth, video.videoHeight)) {
+      void handleCapture(true);
     }
+  }, [corners, isStable, isCapturing, handleCapture, videoRef]);
 
-    const boundsOk = areCornersWithinBounds(
-      corners,
-      video.videoWidth,
-      video.videoHeight,
-      AUTO_CAPTURE_MARGIN_RATIO
-    );
-    const confidenceOk = corners.confidence >= AUTO_CAPTURE_MIN_CONFIDENCE;
-    const stabilityOk = stability >= AUTO_CAPTURE_MIN_STABILITY;
-
-    if (!boundsOk || !confidenceOk || !stabilityOk) {
-      if (autoCaptureTimerRef.current !== null) {
-        window.clearTimeout(autoCaptureTimerRef.current);
-        autoCaptureTimerRef.current = null;
-      }
-      setAutoCapturePending(false);
-      return;
-    }
-
-    if (autoCaptureTimerRef.current === null) {
-      setAutoCapturePending(true);
-      autoCaptureTimerRef.current = window.setTimeout(() => {
-        autoCaptureTimerRef.current = null;
-        autoCaptureTriggeredRef.current = true;
-        console.log('Auto-capture after delay, corners:', detectedCornersRef.current);
-        const imageData = captureImage();
-        if (imageData) {
-          onCapture(imageData, detectedCornersRef.current);
-        }
-      }, AUTO_CAPTURE_DELAY_MS);
-    }
-  }, [corners, isStable, stability, captureImage, onCapture, videoRef]);
-
-  useEffect(() => {
-    return () => {
-      if (autoCaptureTimerRef.current !== null) {
-        window.clearTimeout(autoCaptureTimerRef.current);
-        autoCaptureTimerRef.current = null;
-      }
-    };
+  useEffect(() => () => {
+    captureControllerRef.current?.abort();
+    captureControllerRef.current = null;
   }, []);
-
-  const handleCapture = () => {
-    if (autoCaptureTimerRef.current !== null) {
-      window.clearTimeout(autoCaptureTimerRef.current);
-      autoCaptureTimerRef.current = null;
-    }
-    autoCaptureTriggeredRef.current = true;
-    setAutoCapturePending(false);
-
-    const imageData = captureImage();
-    if (imageData) {
-      // Pass detected corners to parent for initial corner adjustment
-      onCapture(imageData, detectedCornersRef.current);
-    }
-  };
 
   return (
     <div className="relative w-full h-full bg-carbon-950">
@@ -236,19 +177,25 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
           <span className="text-xs font-medium text-amber-400">Initializing edge detection...</span>
         </div>
       )}
-      {stream && !error && !isLoading && edgeDetectionReady && !corners && (
+      {stream && !error && !isLoading && !isCapturing && edgeDetectionReady && !corners && (
         <div className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-lg bg-carbon-800/90 backdrop-blur-sm border border-carbon-700">
           <span className="text-xs font-medium text-carbon-400">Searching for document...</span>
         </div>
       )}
-      {stream && !error && !isLoading && corners && autoCapturePending && (
-        <div className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-lg bg-amber-500/20 backdrop-blur-sm border border-amber-500/50 animate-pulse">
-          <span className="text-xs font-medium text-amber-400">Hold steady...</span>
+      {stream && !error && !isLoading && isCapturing && (
+        <div role="status" className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-lg bg-amber-500/20 backdrop-blur-sm border border-amber-500/50 animate-pulse">
+          <span className="text-xs font-medium text-amber-400">Selecting sharpest frame...</span>
         </div>
       )}
-      {stream && !error && !isLoading && corners && !autoCapturePending && !isStable && (
+      {stream && !error && !isLoading && corners && !isCapturing && !captureMessage && !isStable && (
         <div className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-lg bg-carbon-800/90 backdrop-blur-sm border border-carbon-700">
           <span className="text-xs font-medium text-amber-400">Document found - hold steady</span>
+        </div>
+      )}
+
+      {stream && !error && !isCapturing && captureMessage && (
+        <div role="status" className="absolute top-16 left-4 right-4 z-20 px-3 py-1.5 rounded-lg bg-carbon-800/90 backdrop-blur-sm border border-carbon-700">
+          <span className="text-xs font-medium text-amber-400">{captureMessage}</span>
         </div>
       )}
 
@@ -299,6 +246,7 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
                 {hasFlash && (
                   <button
                     onClick={toggleFlash}
+                    disabled={isCapturing}
                     className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
                       flashOn
                         ? 'bg-amber-400/20 border-2 border-amber-400 shadow-glow-amber'
@@ -313,8 +261,10 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
 
               {/* Capture Button */}
               <button
-                onClick={handleCapture}
-                className="capture-btn group"
+                onClick={() => void handleCapture()}
+                disabled={isCapturing}
+                aria-busy={isCapturing}
+                className="capture-btn group disabled:opacity-50 disabled:cursor-wait"
                 aria-label="Capture photo"
               >
                 {/* Pulse ring on hover */}
