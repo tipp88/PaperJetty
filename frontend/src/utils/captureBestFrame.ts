@@ -5,6 +5,7 @@ import type { DetectedCorners } from './opencv';
 export interface CaptureOptions {
   automatic: boolean;
   signal: AbortSignal;
+  referenceCorners?: DetectedCorners | null;
 }
 
 export interface CaptureResult {
@@ -58,10 +59,13 @@ export async function captureBestFrame(video: HTMLVideoElement, options: Capture
   const detectionCanvas = document.createElement('canvas');
   const qualityCanvas = document.createElement('canvas');
   let best: FrameQuality | null = null;
-  let previousCorners: DetectedCorners | null = null;
+  // Auto-capture was already armed by a stable preview. Use that position to
+  // evaluate the first fresh frame, even if a slow device only delivers one.
+  let previousCorners = automatic ? options.referenceCorners ?? null : null;
   let lastVideoTime = -1;
-  let previousTime = -Infinity;
   try {
+    frame.width = video.videoWidth;
+    frame.height = video.videoHeight;
     // Let the small movement caused by tapping the shutter subside.
     if (!automatic) await delay(120, signal);
     const deadline = performance.now() + 700;
@@ -102,17 +106,15 @@ export async function captureBestFrame(video: HTMLVideoElement, options: Capture
       const qualityCtx = qualityCanvas.getContext('2d', { willReadFrequently: true });
       if (!qualityCtx) return null;
       qualityCtx.drawImage(frame, 0, 0, w, h);
-      const now = performance.now();
       const quality: FrameQuality = {
         width, height, corners,
-        motion: corners && previousCorners && now - previousTime <= 250 ? cornerMotion(previousCorners, corners) : Infinity,
+        motion: corners && previousCorners ? cornerMotion(previousCorners, corners) : Infinity,
         sharpness: documentSharpness(
           qualityCtx.getImageData(0, 0, w, h).data, w, h,
           corners ? scaleFrameCorners(corners, w / width, h / height) : null
         ),
       };
       previousCorners = corners;
-      previousTime = now;
       if (preferCaptureFrame(quality, best, automatic)) {
         bestCanvas.width = width;
         bestCanvas.height = height;

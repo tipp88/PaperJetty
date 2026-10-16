@@ -10,7 +10,7 @@ mock.module('../src/utils/frameDetection.ts', {
 });
 const { captureBestFrame } = await import('../src/utils/captureBestFrame.ts');
 
-function setup({ missingCorners = false, blank = false, stalled = false, moving = false } = {}) {
+function setup({ missingCorners = false, blank = false, stalled = false, moving = false, frameStep = 0.1 } = {}) {
   const canvases = [];
   const callbacks = new Map();
   let sequence = 0;
@@ -24,7 +24,7 @@ function setup({ missingCorners = false, blank = false, stalled = false, moving 
       if (!stalled) callbacks.set(id, setTimeout(() => {
         callbacks.delete(id);
         video.currentTime += 0.1;
-        const dx = moving ? id * 50 : id * 0.1;
+        const dx = moving ? id * 50 : id * frameStep;
         video.sample = {
           id, amplitude: blank ? 0 : amplitudes[Math.min(id - 1, 6)],
           corners: missingCorners ? null : {
@@ -100,10 +100,11 @@ test('manual capture works without OpenCV/document detection and compares detail
   assert.equal(result.corners, null);
 });
 
-test('automatic capture does not save a detail-free page', async t => {
+test('automatic capture also saves a stationary page with no measurable detail', async t => {
   const env = fixture(t, { blank: true });
-  assert.equal(await captureBestFrame(env.video, { automatic: true, signal: new AbortController().signal }), null);
-  assert.equal(env.encoded, 0);
+  const result = await captureBestFrame(env.video, { automatic: true, signal: new AbortController().signal });
+  assert.ok(result);
+  assert.equal(env.encoded, 1);
 });
 
 test('automatic capture rejects a moving page throughout the burst', async t => {
@@ -149,4 +150,61 @@ test('fallback browsers cannot count a repeated frame as stationary', async t =>
   delete env.video.requestVideoFrameCallback;
   assert.equal(await captureBestFrame(env.video, { automatic: true, signal: new AbortController().signal }), null);
   assert.equal(env.encoded, 0);
+});
+
+
+test('normal hand drift during the burst still selects the sharpest frame', async t => {
+  const env = fixture(t, { frameStep: 10 });
+  const result = await captureBestFrame(env.video, { automatic: true, signal: new AbortController().signal });
+  assert.equal(JSON.parse(result.imageData).id, 3);
+});
+
+test('a stable preview allows a fresh frame when the camera delivers only one sample', async t => {
+  const env = fixture(t);
+  await new Promise(resolve => env.video.requestVideoFrameCallback(resolve));
+  const referenceCorners = env.video.sample.corners;
+  const requestFrame = env.video.requestVideoFrameCallback.bind(env.video);
+  env.video.requestVideoFrameCallback = callback => requestFrame(() => {
+    env.video.requestVideoFrameCallback = () => 999;
+    callback();
+  });
+  const result = await captureBestFrame(env.video, {
+    automatic: true, signal: new AbortController().signal, referenceCorners,
+  });
+  assert.equal(JSON.parse(result.imageData).id, 2);
+  assert.equal(result.corners.topLeft.x, 80.2);
+});
+
+test('a stable preview does not allow a page that moves before the fresh frame', async t => {
+  const env = fixture(t, { moving: true });
+  await new Promise(resolve => env.video.requestVideoFrameCallback(resolve));
+  const referenceCorners = env.video.sample.corners;
+  assert.equal(await captureBestFrame(env.video, {
+    automatic: true, signal: new AbortController().signal, referenceCorners,
+  }), null);
+});
+
+test('frame processing longer than 250 ms does not disqualify a stationary page', async t => {
+  const env = fixture(t);
+  const realNow = performance.now.bind(performance);
+  let offset = 0;
+  t.mock.method(performance, 'now', () => realNow() + offset);
+  const createElement = env.document.createElement;
+  env.document.createElement = () => {
+    const canvas = createElement();
+    const getContext = canvas.getContext;
+    canvas.getContext = () => {
+      const ctx = getContext();
+      const getImageData = ctx.getImageData;
+      ctx.getImageData = () => {
+        offset += 260;
+        return getImageData();
+      };
+      return ctx;
+    };
+    return canvas;
+  };
+  const result = await captureBestFrame(env.video, { automatic: true, signal: new AbortController().signal });
+  assert.ok(result);
+  assert.equal(env.encoded, 1);
 });

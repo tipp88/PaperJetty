@@ -1,9 +1,9 @@
 import type { DetectedCorners } from './opencv';
 
 export const MAX_CAPTURE_MOTION = 0.015;
-// Conservative rejection of essentially detail-free images, not a universal
-// sharpness guarantee. Scores are compared only within one short capture burst.
-export const MIN_CAPTURE_SHARPNESS = 6;
+// Burst samples are farther apart than preview detections. Allow normal hand
+// drift and detection jitter while still rejecting a clearly moving document.
+export const MAX_BURST_MOTION = 0.04;
 
 export function cornerPoints(corners: DetectedCorners) {
   return [corners.topLeft, corners.topRight, corners.bottomRight, corners.bottomLeft];
@@ -94,7 +94,7 @@ export interface FrameQuality {
 export function isCaptureCandidate(frame: FrameQuality): boolean {
   return !!frame.corners && frame.corners.confidence >= 0.6 &&
     captureBoundsOk(frame.corners, frame.width, frame.height) &&
-    frame.motion <= MAX_CAPTURE_MOTION && frame.sharpness >= MIN_CAPTURE_SHARPNESS;
+    frame.motion <= MAX_BURST_MOTION;
 }
 
 export function preferCaptureFrame(next: FrameQuality, best: FrameQuality | null, automatic: boolean) {
@@ -102,8 +102,9 @@ export function preferCaptureFrame(next: FrameQuality, best: FrameQuality | null
   const eligible = isCaptureCandidate(next);
   if (automatic && !eligible) return false;
   if (!best) return true;
-  // Manual capture remains possible without detection or on a blank page.
-  // Prefer usable stationary frames, then rank by detail within that class.
+  // Sharpness is a relative ranking, not a camera-independent pass/fail score:
+  // sparse text, low contrast and downsampling can all produce very low values.
+  // Manual capture also remains possible without document detection.
   if (eligible !== isCaptureCandidate(best)) return eligible;
   return next.sharpness > best.sharpness;
 }

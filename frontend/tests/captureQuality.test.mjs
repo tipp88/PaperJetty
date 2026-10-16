@@ -85,16 +85,17 @@ test('sharp page border and textured background cannot qualify a blank page', ()
   assert.equal(documentSharpness(data, w, h, page), 0);
 });
 
-test('selection rejects moving/blank/missing pages automatically but allows manual fallback', () => {
+test('selection rejects moving/missing pages automatically but allows manual fallback', () => {
   const good = { corners: corners(), sharpness: 100, motion: 0.002, width: 2000, height: 2200 };
   const blurry = { ...good, sharpness: 0.2 };
   const moving = { ...good, sharpness: 150, motion: 0.2 };
   const unknown = { ...good, corners: null };
-  for (const frame of [blurry, moving, unknown]) {
+  for (const frame of [moving, unknown]) {
     assert.equal(preferCaptureFrame(frame, null, true), false);
     assert.equal(preferCaptureFrame(frame, null, false), true);
     assert.equal(preferCaptureFrame(frame, good, false), false);
   }
+  assert.equal(preferCaptureFrame(blurry, null, true), true);
   assert.equal(preferCaptureFrame(good, blurry, false), true);
   assert.equal(preferCaptureFrame({ ...good, sharpness: 200 }, good, true), true);
   assert.equal(preferCaptureFrame({ ...good, corners: corners(-200) }, null, true), false);
@@ -108,4 +109,13 @@ test('corner scaling keeps native capture coordinates, including rounded analysi
     assert.ok(Math.abs(restored[key].x - page[key].x) < 1e-9);
     assert.ok(Math.abs(restored[key].y - page[key].y) < 1e-9);
   }
+});
+
+// Low scores are not evidence of blur: sparse or low-contrast text can be sharp.
+test('automatic capture ranks low sharpness scores instead of blocking them', () => {
+  const frame = { corners: corners(), sharpness: 0, motion: 0.025, width: 2000, height: 2200 };
+  assert.equal(preferCaptureFrame(frame, null, true), true);
+  assert.equal(preferCaptureFrame({ ...frame, sharpness: 0.3 }, frame, true), true);
+  assert.equal(preferCaptureFrame(frame, { ...frame, sharpness: 0.3 }, true), false);
+  assert.equal(preferCaptureFrame({ ...frame, sharpness: NaN }, null, true), false);
 });

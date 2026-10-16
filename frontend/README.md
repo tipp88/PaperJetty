@@ -19,9 +19,11 @@ sharpest suitable frame at the existing camera resolution and JPEG quality.
 Manual capture adds a 120 ms settling delay after tapping the shutter.
 
 Sharpness is measured inside the detected page, excluding the border and
-background. Automatic capture requires a confident, stationary page with some
-image detail. Manual capture can also save pages without detected corners or
-with very little detail. Only the working frame and best frame are retained at
+background. Sharpness only ranks candidates within a burst; there is no absolute
+minimum that could block sparse or low-contrast pages. Automatic capture uses
+the stable preview position as its initial reference and tolerates small drift
+between the more widely spaced burst frames. Manual capture can also save pages
+without detected corners. Only the working frame and best frame are retained at
 full resolution; corners are detected on the exact frame that is saved.
 
 Run regression tests with Node.js 24+ (native TypeScript support and experimental
@@ -36,6 +38,5 @@ Tests cover movement, lost tracking, sharpness ranking, background exclusion,
 frame/corner correspondence, manual fallback, cancellation, and stalled cameras.
 On a phone, compare scans of the same printed page in good and dim light, with
 small hand movements, using both automatic and manual capture. Also check a
-blank page via manual capture and leaving the camera during capture. The detail
-threshold is deliberately conservative; real camera noise and focus behavior
-still need device testing.
+blank page via automatic capture and leaving the camera during capture. Real
+camera timing, noise and focus behavior still need device testing.

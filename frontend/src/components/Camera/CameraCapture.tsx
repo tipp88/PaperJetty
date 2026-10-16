@@ -90,7 +90,7 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
     }
   }, [enableEdgeDetection, edgeDetectionReady, stream, startDetection, stopDetection]);
 
-  const handleCapture = useCallback(async (automatic = false) => {
+  const handleCapture = useCallback(async (automatic = false, referenceCorners?: DetectedCorners) => {
     // A ref closes the gap before React renders the disabled shutter button.
     if (captureControllerRef.current || captureCompleteRef.current) return;
     const controller = new AbortController();
@@ -98,14 +98,14 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
     setIsCapturing(true);
     setCaptureMessage('');
     try {
-      const result = await captureImage({ automatic, signal: controller.signal });
+      const result = await captureImage({ automatic, signal: controller.signal, referenceCorners });
       if (controller.signal.aborted) return;
       if (result) {
         captureCompleteRef.current = true;
         onCapture(result.imageData, result.corners);
       } else {
         setCaptureMessage(automatic
-          ? 'No sharp frame yet — add light or tap to capture'
+          ? 'Document moved or tracking was lost — hold briefly or tap to capture'
           : 'Camera not ready — please try again');
       }
     } catch (err) {
@@ -124,13 +124,13 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
   }, [captureImage, onCapture]);
 
   // Start a short burst once movement has settled. The burst independently
-  // checks fresh corners and sharpness instead of trusting this preview state.
+  // checks fresh corners against this position and ranks frames by sharpness.
   useEffect(() => {
     const video = videoRef.current;
     if (isCapturing || captureCompleteRef.current || performance.now() < retryAfterRef.current) return;
     if (video && corners && isStable && corners.confidence >= 0.6 &&
         captureBoundsOk(corners, video.videoWidth, video.videoHeight)) {
-      void handleCapture(true);
+      void handleCapture(true, corners);
     }
   }, [corners, isStable, isCapturing, handleCapture, videoRef]);
 
