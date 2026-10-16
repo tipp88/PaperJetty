@@ -37,3 +37,7 @@ docker-compose.override.yml
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Local reverse-engineering tools, target packages and private evidence
+.local-tools/
+.analysis/

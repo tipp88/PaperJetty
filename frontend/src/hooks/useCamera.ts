@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { captureBestFrame, type CaptureOptions } from '../utils/captureBestFrame';
+import { cameraErrorMessage, configureContinuousCamera, readCameraCapabilities } from '../utils/cameraSettings';
 
 export function useCamera() {
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -8,158 +9,128 @@ export function useCamera() {
   const [hasFlash, setHasFlash] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null); // Keep track of stream for cleanup
+  const streamRef = useRef<MediaStream | null>(null);
+  const mountedRef = useRef(false);
+  const generationRef = useRef(0);
+  const pendingRef = useRef<number | null>(null);
+  const settingsControllerRef = useRef<AbortController | null>(null);
+  const flashPendingRef = useRef(false);
 
-  const getConstraints = useCallback((): MediaStreamConstraints => {
-    return {
-      video: {
-        facingMode: 'environment', // Use rear camera on mobile
-        width: { ideal: 4096 },     // Request 4K resolution
-        height: { ideal: 2160 },    // Request 4K resolution
-        aspectRatio: { ideal: 16 / 9 },
-      },
-    };
+  // getUserMedia cannot be aborted: invalidate pending requests so a late
+  // permission result is stopped instead of reopening a closed camera.
+  const releaseCamera = useCallback(() => {
+    generationRef.current++;
+    pendingRef.current = null;
+    settingsControllerRef.current?.abort();
+    settingsControllerRef.current = null;
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
   }, []);
 
   const startCamera = useCallback(async () => {
-    // Don't start if already loading or have a stream
-    if (isLoading || streamRef.current) {
-      console.log('Camera already starting or active');
-      return;
-    }
-
+    if (!mountedRef.current || pendingRef.current !== null || streamRef.current) return;
+    const generation = ++generationRef.current;
+    pendingRef.current = generation;
     setIsLoading(true);
     setError(null);
-
+    setHasFlash(false);
+    setFlashOn(false);
     try {
-      const constraints = getConstraints();
-      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setError(window.isSecureContext
+          ? 'Camera access is not supported in this browser.'
+          : 'Camera access requires a secure HTTPS connection.');
+        return;
+      }
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 4096 },
+          height: { ideal: 2160 },
+          aspectRatio: { ideal: 16 / 9 },
+        },
+      });
+      if (!mountedRef.current || generation !== generationRef.current) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      const videoTrack = mediaStream.getVideoTracks()[0];
+      if (!videoTrack || videoTrack.readyState === 'ended') {
+        mediaStream.getTracks().forEach(track => track.stop());
+        setError('Camera did not provide a live video stream. Please try again.');
+        return;
+      }
       streamRef.current = mediaStream;
       setStream(mediaStream);
-
-      // Check if flash/torch is available
-      const videoTrack = mediaStream.getVideoTracks()[0];
-      const capabilities = videoTrack.getCapabilities() as any;
-
-      if (capabilities.torch) {
-        setHasFlash(true);
-      }
-
-      setIsLoading(false);
-      console.log('Camera started successfully');
+      setHasFlash(readCameraCapabilities(videoTrack).torch === true);
+      const controller = new AbortController();
+      settingsControllerRef.current = controller;
+      // A slow or unsupported optional setting must not delay camera access.
+      void configureContinuousCamera(videoTrack, controller.signal);
     } catch (err) {
-      console.log('Camera hardware not found or failed, starting mock camera feed...', err);
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = 640;
-        canvas.height = 480;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.fillStyle = '#1a1a1e';
-          ctx.fillRect(0, 0, 640, 480);
-          ctx.fillStyle = '#f59e0b';
-          ctx.font = 'bold 24px sans-serif';
-          ctx.fillText('Mock Camera Feed', 200, 200);
-          
-          // Draw a simulated green document container
-          ctx.strokeStyle = '#10b981';
-          ctx.lineWidth = 4;
-          ctx.strokeRect(120, 80, 400, 320);
-          ctx.fillStyle = '#ffffff';
-          ctx.font = '16px sans-serif';
-          ctx.fillText('Simulated Document Page', 220, 240);
-        }
-        
-        const mockStream = (canvas as any).captureStream ? (canvas as any).captureStream(30) : null;
-        if (mockStream) {
-          streamRef.current = mockStream;
-          setStream(mockStream);
-          setIsLoading(false);
-        } else {
-          throw err;
-        }
-      } catch (fallbackErr) {
-        console.error('Mock camera fallback failed:', fallbackErr);
-        let errorMessage = 'Failed to access camera';
-
-        if (err instanceof Error) {
-          if (err.name === 'NotAllowedError') {
-            errorMessage = 'Camera permission denied. Please allow camera access in your browser settings.';
-          } else if (err.name === 'NotFoundError') {
-            errorMessage = 'No camera found on this device.';
-          } else if (err.name === 'NotReadableError') {
-            errorMessage = 'Camera is already in use by another application.';
-          } else if (err.name === 'SecurityError') {
-            errorMessage = 'Camera access requires HTTPS connection.';
-          }
-        }
-
-        setError(errorMessage);
-        setIsLoading(false);
-      }
+      if (mountedRef.current && generation === generationRef.current) setError(cameraErrorMessage(err));
+    } finally {
+      if (pendingRef.current === generation) pendingRef.current = null;
+      if (mountedRef.current && generation === generationRef.current) setIsLoading(false);
     }
-  }, [getConstraints, isLoading]);
+  }, []);
 
   const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
+    releaseCamera();
+    if (mountedRef.current) {
       setStream(null);
+      setIsLoading(false);
+      setHasFlash(false);
       setFlashOn(false);
-      console.log('Camera stopped');
     }
-  }, []); // No dependencies needed since we use ref
+  }, [releaseCamera]);
 
   const toggleFlash = useCallback(async () => {
-    if (!stream || !hasFlash) return;
-
-    const videoTrack = stream.getVideoTracks()[0];
+    const currentStream = streamRef.current;
+    if (!currentStream || !hasFlash || flashPendingRef.current) return;
+    const track = currentStream.getVideoTracks()[0];
+    if (!track || track.readyState === 'ended') return;
     const newFlashState = !flashOn;
-
+    flashPendingRef.current = true;
     try {
-      await videoTrack.applyConstraints({
-        advanced: [{ torch: newFlashState } as any],
+      const current = track.getConstraints();
+      // Replace an earlier torch request instead of adding conflicting values.
+      const advanced = (current.advanced ?? []).map(constraint => {
+        const copy = { ...constraint } as MediaTrackConstraintSet & { torch?: boolean };
+        delete copy.torch;
+        return copy;
       });
-      setFlashOn(newFlashState);
+      await track.applyConstraints({
+        ...current,
+        advanced: [...advanced, { torch: newFlashState } as MediaTrackConstraintSet],
+      });
+      if (mountedRef.current && streamRef.current === currentStream) setFlashOn(newFlashState);
     } catch (err) {
       console.error('Failed to toggle flash:', err);
+    } finally {
+      flashPendingRef.current = false;
     }
-  }, [stream, hasFlash, flashOn]);
+  }, [hasFlash, flashOn]);
 
   const captureImage = useCallback(async (options: CaptureOptions) => {
     return videoRef.current ? captureBestFrame(videoRef.current, options) : null;
   }, []);
 
-  // Attach stream to video element when it changes
   useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
-    }
+    if (videoRef.current) videoRef.current.srcObject = stream;
   }, [stream]);
 
-  // Cleanup on unmount only
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
-      // Cleanup: stop all tracks using ref (always has latest value)
-      if (streamRef.current) {
-        console.log('Cleaning up camera on unmount');
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
-      }
+      mountedRef.current = false;
+      releaseCamera();
     };
-  }, []); // Empty deps - only run on unmount
+  }, [releaseCamera]);
 
   return {
-    videoRef,
-    stream,
-    error,
-    isLoading,
-    hasFlash,
-    flashOn,
-    startCamera,
-    stopCamera,
-    toggleFlash,
-    captureImage,
+    videoRef, stream, error, isLoading, hasFlash, flashOn,
+    startCamera, stopCamera, toggleFlash, captureImage,
   };
 }

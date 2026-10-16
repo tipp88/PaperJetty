@@ -40,6 +40,8 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
   const [enableEdgeDetection, setEnableEdgeDetection] = useState(false);
 
   const [isCapturing, setIsCapturing] = useState(false);
+  const [autoCapture, setAutoCapture] = useState(true);
+  const [showManualHint, setShowManualHint] = useState(false);
   const [captureMessage, setCaptureMessage] = useState('');
   const captureControllerRef = useRef<AbortController | null>(null);
   const captureCompleteRef = useRef(false);
@@ -63,7 +65,14 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
   // Start camera on mount
   useEffect(() => {
     startCamera();
-  }, []);
+  }, [startCamera]);
+
+  // A detector that cannot find the page must still leave a clear way forward.
+  useEffect(() => {
+    if (!stream || !autoCapture) return;
+    const timer = setTimeout(() => setShowManualHint(true), 8000);
+    return () => clearTimeout(timer);
+  }, [stream, autoCapture]);
 
   // Handle camera errors
   useEffect(() => {
@@ -127,12 +136,12 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
   // checks fresh corners against this position and ranks frames by sharpness.
   useEffect(() => {
     const video = videoRef.current;
-    if (isCapturing || captureCompleteRef.current || performance.now() < retryAfterRef.current) return;
+    if (!autoCapture || isCapturing || captureCompleteRef.current || performance.now() < retryAfterRef.current) return;
     if (video && corners && isStable && corners.confidence >= 0.6 &&
         captureBoundsOk(corners, video.videoWidth, video.videoHeight)) {
       void handleCapture(true, corners);
     }
-  }, [corners, isStable, isCapturing, handleCapture, videoRef]);
+  }, [autoCapture, corners, isStable, isCapturing, handleCapture, videoRef]);
 
   useEffect(() => () => {
     captureControllerRef.current?.abort();
@@ -171,31 +180,20 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
         />
       )}
 
-      {/* Edge Detection Status Badges */}
-      {stream && !error && !isLoading && enableEdgeDetection && !edgeDetectionReady && (
-        <div className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-lg bg-carbon-800/90 backdrop-blur-sm border border-carbon-700">
-          <span className="text-xs font-medium text-amber-400">Initializing edge detection...</span>
-        </div>
-      )}
-      {stream && !error && !isLoading && !isCapturing && edgeDetectionReady && !corners && (
-        <div className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-lg bg-carbon-800/90 backdrop-blur-sm border border-carbon-700">
-          <span className="text-xs font-medium text-carbon-400">Searching for document...</span>
-        </div>
-      )}
-      {stream && !error && !isLoading && isCapturing && (
-        <div role="status" className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-lg bg-amber-500/20 backdrop-blur-sm border border-amber-500/50 animate-pulse">
-          <span className="text-xs font-medium text-amber-400">Selecting sharpest frame...</span>
-        </div>
-      )}
-      {stream && !error && !isLoading && corners && !isCapturing && !captureMessage && !isStable && (
-        <div className="absolute top-4 left-4 z-20 px-3 py-1.5 rounded-lg bg-carbon-800/90 backdrop-blur-sm border border-carbon-700">
-          <span className="text-xs font-medium text-amber-400">Document found - hold steady</span>
-        </div>
-      )}
-
-      {stream && !error && !isCapturing && captureMessage && (
-        <div role="status" className="absolute top-16 left-4 right-4 z-20 px-3 py-1.5 rounded-lg bg-carbon-800/90 backdrop-blur-sm border border-carbon-700">
-          <span className="text-xs font-medium text-amber-400">{captureMessage}</span>
+      {/* One actionable status, including a fallback while OpenCV loads. */}
+      {stream && !error && !isLoading && (
+        <div role="status" aria-live="polite" className="absolute top-4 left-4 right-4 z-20 px-3 py-2 rounded-lg bg-carbon-800/90 backdrop-blur-sm border border-carbon-700">
+          <span className="text-sm font-medium text-amber-400">
+            {isCapturing ? 'Selecting sharpest frame...'
+              : captureMessage || (!autoCapture ? 'Manual mode — tap to capture'
+                : corners && !captureBoundsOk(corners, videoRef.current?.videoWidth ?? 0, videoRef.current?.videoHeight ?? 0)
+                  ? 'Move back to include the whole page — or tap to capture'
+                : showManualHint ? 'Auto capture is waiting — you can tap to capture anytime'
+                : !edgeDetectionReady ? 'Preparing detection — you can already tap to capture'
+                : !corners ? 'Searching for document — point camera at the page'
+                : !isStable ? 'Document found — hold briefly or tap to capture'
+                : 'Document ready')}
+          </span>
         </div>
       )}
 
@@ -271,13 +269,25 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
                 <div className="absolute inset-0 rounded-full border-2 border-amber-400/0 group-hover:border-amber-400/50 transition-all duration-300 scale-100 group-hover:scale-110" />
               </button>
 
-              {/* Placeholder for symmetry */}
-              <div className="w-14" />
+              <button
+                type="button"
+                aria-label="Automatic capture"
+                aria-pressed={autoCapture}
+                disabled={isCapturing}
+                onClick={() => {
+                  setAutoCapture(value => !value);
+                  setShowManualHint(false);
+                  setCaptureMessage('');
+                }}
+                className="w-14 min-h-12 rounded-xl bg-carbon-800/90 border border-carbon-700 text-xs text-carbon-100 disabled:opacity-50"
+              >
+                {autoCapture ? 'Auto' : 'Manual'}
+              </button>
             </div>
 
             {/* Hint text */}
             <p className="text-center text-carbon-500 text-xs mt-6 tracking-wide uppercase">
-              Position document within frame
+              {autoCapture ? 'Automatic capture on · tap shutter anytime' : 'Automatic capture off · tap shutter when ready'}
             </p>
           </div>
         </div>
