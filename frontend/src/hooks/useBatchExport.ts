@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useDocumentStore } from '../stores/documentStore';
 import type { ScannedDocument } from '../types/document';
+import { exportPages } from '../utils/exportPages';
 
 const API_BASE_URL = '';
 
@@ -30,7 +31,7 @@ export function useBatchExport() {
       });
 
       try {
-        const images = doc.pages.map(p => p.processedImage);
+        const imagePages = exportPages(doc.pages);
         
         // Use default tags if the document has no custom tags
         const tags = doc.tags.length > 0 ? doc.tags : defaultTags;
@@ -70,7 +71,7 @@ export function useBatchExport() {
           xhr.setRequestHeader('Content-Type', 'application/json');
           xhr.send(
             JSON.stringify({
-              images,
+              ...imagePages,
               title: doc.title,
               tags: tags.length > 0 ? tags : ['docu_scan'],
               paperless_url: paperlessUrl,
@@ -93,7 +94,7 @@ export function useBatchExport() {
 
   const downloadSinglePDF = async (doc: ScannedDocument) => {
     try {
-      const images = doc.pages.map(page => page.processedImage);
+      const imagePages = exportPages(doc.pages);
 
       const response = await fetch(`${API_BASE_URL}/api/pdf/generate`, {
         method: 'POST',
@@ -101,7 +102,7 @@ export function useBatchExport() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          images,
+          ...imagePages,
           title: doc.title,
         }),
       });

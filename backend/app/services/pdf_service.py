@@ -12,7 +12,8 @@ from app.config import settings
 async def generate_pdf_from_images(
     images_base64: List[str],
     title: str = "Scanned Document",
-    compression_quality: int = None
+    compression_quality: int = None,
+    rotations: List[int] | None = None,
 ) -> bytes:
     """
     Generate a PDF from a list of base64-encoded images
@@ -21,10 +22,17 @@ async def generate_pdf_from_images(
         images_base64: List of base64-encoded images (with or without data URI prefix)
         title: PDF title metadata
         compression_quality: JPEG compression quality (1-100), uses config default if None
+        rotations: Clockwise quarter-turns, one per image; omitted means no rotation
 
     Returns:
         PDF file as bytes
     """
+    if rotations is not None and (
+        len(rotations) != len(images_base64)
+        or any(rotation not in (0, 90, 180, 270) for rotation in rotations)
+    ):
+        raise ValueError("Provide one valid quarter-turn rotation per image")
+
     if compression_quality is None:
         compression_quality = settings.pdf_compression_quality
 
@@ -50,6 +58,17 @@ async def generate_pdf_from_images(
             # Decode base64 to image bytes
             img_bytes = base64.b64decode(img_base64)
             img = Image.open(io.BytesIO(img_bytes))
+
+            # Pillow uses counterclockwise angles. Transpose avoids resampling
+            # and swaps dimensions for quarter-turns before fitting the PDF page.
+            rotation = rotations[idx] if rotations is not None else 0
+            transpose = {
+                90: Image.Transpose.ROTATE_270,
+                180: Image.Transpose.ROTATE_180,
+                270: Image.Transpose.ROTATE_90,
+            }.get(rotation)
+            if transpose is not None:
+                img = img.transpose(transpose)
 
             # Convert to RGB if needed (removes alpha channel)
             if img.mode != 'RGB':

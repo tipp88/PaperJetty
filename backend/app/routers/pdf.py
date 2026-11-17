@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 import io
-from typing import List
 from pydantic import BaseModel
+from app.models.image_pages import ImagePagesRequest
 
 from app.services.pdf_service import (
     generate_pdf_from_images,
@@ -13,8 +13,7 @@ from app.services.pdf_service import (
 router = APIRouter(prefix="/api/pdf", tags=["pdf"])
 
 
-class PDFGenerateRequest(BaseModel):
-    images: List[str]  # Base64-encoded images
+class PDFGenerateRequest(ImagePagesRequest):
     title: str = "Scanned Document"
     compression_quality: int | None = None
 
@@ -43,7 +42,8 @@ async def generate_pdf(request: PDFGenerateRequest):
         pdf_bytes = await generate_pdf_from_images(
             images_base64=request.images,
             title=request.title,
-            compression_quality=request.compression_quality
+            compression_quality=request.compression_quality,
+            rotations=request.rotations,
         )
 
         # Get file size

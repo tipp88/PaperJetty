@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import List, Optional
-from pydantic import BaseModel
+from app.models.image_pages import ImagePagesRequest
 import base64
 
 from app.services.paperless_service import (
@@ -15,8 +15,7 @@ from app.services.pdf_service import generate_pdf_from_images
 router = APIRouter(prefix="/api/paperless", tags=["paperless"])
 
 
-class PaperlessUploadRequest(BaseModel):
-    images: List[str]  # Base64-encoded images
+class PaperlessUploadRequest(ImagePagesRequest):
     title: str
     tags: Optional[List[str]] = None
     correspondent: Optional[str] = None
@@ -45,7 +44,8 @@ async def upload_document(request: PaperlessUploadRequest):
         pdf_bytes = await generate_pdf_from_images(
             images_base64=request.images,
             title=request.title,
-            compression_quality=request.compression_quality
+            compression_quality=request.compression_quality,
+            rotations=request.rotations,
         )
 
         # Upload to Paperless

@@ -739,6 +739,7 @@ function App() {
                           <img
                             src={doc.pages[0].processedImage}
                             alt="thumbnail"
+                            style={{ transform: `rotate(${doc.pages[0].rotation ?? 0}deg)` }}
                             className="w-full h-full object-cover"
                           />
                         )}

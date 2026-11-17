@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { DocumentPage } from '../types/document';
+import { exportPages } from '../utils/exportPages';
 
 // Use relative URL - Vite will proxy to backend
 const API_BASE_URL = '';
@@ -23,8 +24,7 @@ export function useExport() {
     setProgress(0);
 
     try {
-      // Prepare images - just send base64 strings
-      const images = pages.map(page => page.processedImage);
+      const imagePages = exportPages(pages);
 
       setProgress(25);
 
@@ -34,7 +34,7 @@ export function useExport() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          images,
+          ...imagePages,
           title: options.filename?.replace('.pdf', '') || `scan_${Date.now()}`,
         }),
       });
@@ -77,8 +77,7 @@ export function useExport() {
     setProgress(0);
 
     try {
-      // Prepare images - just send base64 strings
-      const images = pages.map(page => page.processedImage);
+      const imagePages = exportPages(pages);
 
       setProgress(10);
 
@@ -122,7 +121,7 @@ export function useExport() {
         xhr.open('POST', `${API_BASE_URL}/api/paperless/upload`);
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.send(JSON.stringify({
-          images,
+          ...imagePages,
           title: options.title || `Scanned Document ${new Date().toLocaleDateString()}`,
           tags: options.tags || ['docu_scan'],
           paperless_url: options.paperlessUrl,
