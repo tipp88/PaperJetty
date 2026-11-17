@@ -17,10 +17,11 @@ if (ref.startsWith('refs/tags/v') && ref.slice('refs/tags/v'.length) !== version
 // Development builds do not change the stable README badge. Stable releases
 // require the newest dated entry, not just a mention anywhere in the changelog.
 if (!version.includes('-')) {
-  const changelog = read('CHANGELOG.md');
-  const latest = /^## \[([^\]]+)\] - \d{4}-\d{2}-\d{2}\s*\n([\s\S]*?)(?=^## |$(?![\s\S]))/m.exec(changelog);
+  const readme = read('README.md');
+  const changelog = (readme.split(/^## Changelog\s*$/m)[1] ?? '').split(/^## /m)[0];
+  const latest = /^### \[([^\]]+)\] - \d{4}-\d{2}-\d{2}\s*\n([\s\S]*?)(?=^### |$(?![\s\S]))/m.exec(changelog);
   if (!latest || latest[1] !== version || !/^- \S/m.test(latest[2])) {
-    errors.push(`CHANGELOG.md must start with a dated, nonempty release entry for ${version} after Unreleased.`);
+    errors.push(`README.md Changelog must start with a dated, nonempty release entry for ${version} after Unreleased.`);
   }
   if (!read('README.md').includes(`/badge/Version-${version}-blue?`)) {
     errors.push(`README.md version badge must show ${version}.`);

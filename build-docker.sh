@@ -2,7 +2,7 @@
 set -e
 
 echo "=========================================="
-echo "DocuScan Docker Build Script"
+echo "PaperJetty Docker Build Script"
 echo "=========================================="
 
 # Colors

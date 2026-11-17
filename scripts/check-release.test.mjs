@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 function check({ version = '1.4.0', lockVersion = version, badge = version,
-  entry = version, notes = '- A documented change.', ref = 'refs/heads/main' } = {}) {
+  entry = version, notes = '- A documented change.', heading = 'Changelog', ref = 'refs/heads/main' } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'docuscan-release-check-'));
   try {
     mkdirSync(join(root, 'scripts'));
@@ -16,8 +16,7 @@ function check({ version = '1.4.0', lockVersion = version, badge = version,
     writeFileSync(join(root, 'frontend/package-lock.json'), JSON.stringify({
       version: lockVersion, packages: { '': { version: lockVersion } },
     }));
-    writeFileSync(join(root, 'README.md'), `![Version](https://img.shields.io/badge/Version-${badge}-blue?style=for-the-badge)`);
-    writeFileSync(join(root, 'CHANGELOG.md'), `# Changelog\n\n## [Unreleased]\n\n## [${entry}] - 2026-11-17\n\n### Added\n${notes}\n\n## [1.3.9] - 2026-07-08\n\n- Older changes.\n`);
+    writeFileSync(join(root, 'README.md'), `![Version](https://img.shields.io/badge/Version-${badge}-blue?style=for-the-badge)\n\n## ${heading}\n\n### [Unreleased]\n\n### [${entry}] - 2026-11-17\n\n${notes}\n\n### [1.3.9] - 2026-07-08\n\n- Older changes.\n`);
     return spawnSync(process.execPath, [join(root, 'scripts/check-release.mjs')], {
       env: { ...process.env, GITHUB_REF: ref }, encoding: 'utf8',
     });
@@ -34,7 +33,7 @@ test('stable version and matching tag pass', () => {
 test('stale lockfile, changelog, README and mismatched tag are rejected', () => {
   for (const options of [
     { lockVersion: '1.3.11' }, { entry: '1.3.11' }, { badge: '1.3.4' },
-    { ref: 'refs/tags/v1.3.11' },
+    { ref: 'refs/tags/v1.3.11' }, { heading: 'Other notes' },
   ]) assert.equal(check(options).status, 1, JSON.stringify(options));
 });
 

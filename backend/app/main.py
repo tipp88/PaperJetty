@@ -4,7 +4,7 @@ from app.config import settings
 from app.routers import pdf, paperless, settings as settings_router
 
 app = FastAPI(
-    title="Document Scanner API",
+    title="PaperJetty API",
     description="Backend API for privacy-first document scanning application",
     version="1.0.0"
 )
@@ -40,7 +40,7 @@ async def health_check():
 async def root():
     """Root endpoint"""
     return {
-        "message": "Document Scanner API",
+        "message": "PaperJetty API",
         "version": "1.0.0",
         "docs": "/docs",
         "endpoints": {

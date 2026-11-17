@@ -1,16 +1,13 @@
-version: '3.8'
-
 services:
   docuscan:
     build:
       context: .
       dockerfile: Dockerfile
-    image: docuscan:latest
+    image: ghcr.io/tipp88/docu_scan:latest
     container_name: docuscan
     restart: unless-stopped
     ports:
       - "8443:443"  # HTTPS - change left port to your preference
-      - "8080:80"   # HTTP - redirects to HTTPS
     environment:
       # Backend Configuration
       - BACKEND_HOST=127.0.0.1
@@ -28,6 +25,8 @@ services:
       - SMB_ENABLED=false
       - FTP_ENABLED=false
     volumes:
+      # Settings, including the shared Paperless token; back up this volume.
+      - docuscan-data:/app/data
       # Optional: Mount custom SSL certificates
       # - ./ssl/docuscan.crt:/app/ssl/docuscan.crt:ro
       # - ./ssl/docuscan.key:/app/ssl/docuscan.key:ro
@@ -63,6 +62,7 @@ services:
   #     - docuscan-network
 
 volumes:
+  docuscan-data:
   docuscan-logs:
   # paperless-data:
   # paperless-media:

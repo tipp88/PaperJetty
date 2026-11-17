@@ -68,5 +68,6 @@ jobs:
           echo "Pull and run the image:" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
           echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "docker run -d -p 8443:443 -p 8080:80 --name docuscan ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "docker run -d --restart unless-stopped -p 8443:443 -v docuscan-data:/app/data --name docuscan ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "Setup, HTTPS and access requirements: [README](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/README.md#docker-setup). Reuse your existing data mount when updating." >> $GITHUB_STEP_SUMMARY

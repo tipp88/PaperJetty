@@ -1,4 +1,4 @@
-# Multi-stage build for DocuScan
+# Multi-stage build for PaperJetty
 
 # Stage 1: Build Frontend
 FROM node:20-alpine AS frontend-builder
@@ -59,7 +59,7 @@ RUN mkdir -p /app/ssl && \
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
     -keyout /app/ssl/docuscan.key \
     -out /app/ssl/docuscan.crt \
-    -subj "/C=US/ST=State/L=City/O=DocuScan/CN=localhost" \
+    -subj "/C=US/ST=State/L=City/O=PaperJetty/CN=localhost" \
     -addext "subjectAltName=DNS:localhost,DNS:docuscan,IP:127.0.0.1"
 
 # Create data directory for persistent settings
@@ -83,7 +83,7 @@ VOLUME ["/app/data"]
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f https://localhost/health || exit 1
+    CMD curl -fk https://localhost/health || exit 1
 
 # Start supervisor (manages nginx + uvicorn)
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

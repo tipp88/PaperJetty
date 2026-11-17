@@ -2,7 +2,7 @@
 set -e
 
 echo "=========================================="
-echo "DocuScan LXC Container Setup"
+echo "PaperJetty LXC Container Setup"
 echo "=========================================="
 
 # Colors for output
@@ -64,7 +64,7 @@ npm run build
 echo -e "${BLUE}[7/7] Creating systemd service for backend...${NC}"
 cat > /etc/systemd/system/docuscan-backend.service <<EOF
 [Unit]
-Description=DocuScan Backend API
+Description=PaperJetty Backend API
 After=network.target
 
 [Service]

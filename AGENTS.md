@@ -1,7 +1,7 @@
-# DocuScan Project Guide
+# PaperJetty Project Guide
 
 ## Summary
-- DocuScan is a privacy-first, mobile-first document scanning web app.
+- PaperJetty (formerly DocuScan) is a self-hosted, mobile-first document scanning web app.
 - Frontend: Vite + React + TypeScript, OpenCV.js for edge detection and perspective correction.
 - Backend: FastAPI for PDF generation and Paperless-ngx integration.
 - Primary workflow: camera capture -> edge detection -> corner adjustment -> enhancement -> export PDF / upload.
@@ -57,7 +57,9 @@ python -m app.main
 - Version displayed in Settings modal comes from `frontend/package.json`.
 
 ## Releases
-- For a stable release, update `frontend/package.json`, both root version fields in `frontend/package-lock.json`, the README version badge and a dated `CHANGELOG.md` entry together.
-- Record user-visible changes in `CHANGELOG.md`; Docker publishing does not generate release notes.
+- README.md is the single user guide, including setup, updates and changelog. Keep research evidence in docs/research and agent instructions here.
+- For a stable release, update `frontend/package.json`, both root version fields in `frontend/package-lock.json`, the README version badge and its latest dated changelog entry together.
+- Record user-visible changes under README's Changelog/Unreleased; Docker publishing does not generate release notes. Update the introductory stable/dev branding note when releasing the rename.
+- Preserve legacy Docker image addresses, IndexedDB keys, settings paths and default tags unless an explicit migration is implemented.
 - Run `node scripts/check-release.mjs` before publishing. The Docker workflow also checks stable release metadata and that any `v*` tag matches the package version.
 - Keep development previews clearly marked as prereleases; do not document an unshipped stable version as released.

@@ -1,6 +1,9 @@
 # Environment
 .env
 .env.local
+localhost-key.pem
+localhost-cert.pem
+backend/data/
 
 # Frontend
 frontend/node_modules/

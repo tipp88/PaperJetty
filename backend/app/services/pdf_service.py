@@ -42,9 +42,9 @@ async def generate_pdf_from_images(
 
     # Set PDF metadata
     c.setTitle(title)
-    c.setAuthor("Document Scanner")
+    c.setAuthor("PaperJetty")
     c.setSubject("Scanned Document")
-    c.setCreator("Document Scanner v1.0")
+    c.setCreator("PaperJetty")
 
     # A4 dimensions
     page_width, page_height = A4

@@ -2,14 +2,13 @@
 .git
 .gitignore
 .github
+.local-tools
+.analysis
+.agents
+.codex
 
 # Documentation
 *.md
-CHANGELOG.md
-README.md
-STATUS.md
-DEPLOYMENT.md
-QUICKSTART-LXC.md
 
 # Node modules (will be installed fresh)
 frontend/node_modules
@@ -26,6 +25,8 @@ backend/**/*.pyo
 backend/**/*.pyd
 backend/.pytest_cache
 backend/logs
+backend/data
+data/
 
 # Environment files (will use examples)
 .env
