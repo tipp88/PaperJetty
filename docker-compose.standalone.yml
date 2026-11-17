@@ -1,10 +1,10 @@
 services:
-  docuscan:
+  paperjetty:
     build:
       context: .
       dockerfile: Dockerfile
     image: ghcr.io/tipp88/paperjetty:latest
-    container_name: docuscan
+    container_name: paperjetty
     restart: unless-stopped
     ports:
       - "8443:443"  # HTTPS - change left port to your preference
@@ -26,7 +26,7 @@ services:
       - FTP_ENABLED=false
     volumes:
       # Settings, including the shared Paperless token; back up this volume.
-      - docuscan-data:/app/data
+      - paperjetty-data:/app/data
       # Optional: Mount custom SSL certificates
       # - ./ssl/docuscan.crt:/app/ssl/docuscan.crt:ro
       # - ./ssl/docuscan.key:/app/ssl/docuscan.key:ro
@@ -35,7 +35,7 @@ services:
       # - ./backend/.env:/app/backend/.env:ro
 
       # Optional: Persist logs
-      - docuscan-logs:/var/log
+      - paperjetty-logs:/var/log
     healthcheck:
       test: ["CMD", "curl", "-f", "-k", "https://localhost/health"]
       interval: 30s
@@ -43,7 +43,7 @@ services:
       retries: 3
       start_period: 40s
     networks:
-      - docuscan-network
+      - paperjetty-network
 
   # Optional: Include Paperless-ngx if you want it in the same stack
   # paperless:
@@ -59,14 +59,14 @@ services:
   #     - paperless-data:/usr/src/paperless/data
   #     - paperless-media:/usr/src/paperless/media
   #   networks:
-  #     - docuscan-network
+  #     - paperjetty-network
 
 volumes:
-  docuscan-data:
-  docuscan-logs:
+  paperjetty-data:
+  paperjetty-logs:
   # paperless-data:
   # paperless-media:
 
 networks:
-  docuscan-network:
+  paperjetty-network:
     driver: bridge

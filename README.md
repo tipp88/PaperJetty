@@ -24,7 +24,7 @@ Requires Docker with Compose on a **Linux amd64** host and a phone browser with 
 
 ```yaml
 services:
-  docuscan:
+  paperjetty:
     image: ghcr.io/tipp88/paperjetty:latest
     restart: unless-stopped
     ports:
@@ -68,13 +68,16 @@ docker compose up -d
 
 Keep the same volume and browser URL. Back up `./data` (it contains credentials), and finish or download queued scans before maintenance. Do not use `down -v` when relying on named volumes. When migrating an existing `docker run` installation, reuse its `/app/data` host directory instead of creating a fresh one.
 
-Use `:1.4.1` instead of `:latest` to pin a release, or `:dev` to test upcoming changes. Existing installations may keep `ghcr.io/tipp88/docu_scan`, or change only the image to `ghcr.io/tipp88/paperjetty` while preserving their data mount, Compose project/service names and browser URL. Troubleshooting: `docker compose logs --tail=100`; check HTTPS and browser permissions for camera errors, and container connectivity/token settings for upload errors. Capture quality depends on lighting, focus and browser/device support.
+When replacing the old `docuscan` service with `paperjetty`, run `docker compose down` using the old configuration first, without `-v`, then start the new configuration. Keep the same `./data` directory and browser URL. If using the standalone recipe with existing named volumes, set `name: YOUR_EXISTING_VOLUME_NAME` under each new top-level volume entry (`paperjetty-data` and `paperjetty-logs`) to reuse the old volumes.
+
+Use `:1.4.1` instead of `:latest` to pin a release, or `:dev` to test upcoming changes. The previous image address `ghcr.io/tipp88/docu_scan` remains available. Troubleshooting: `docker compose logs --tail=100`; check HTTPS and browser permissions for camera errors, and container connectivity/token settings for upload errors. Capture quality depends on lighting, focus and browser/device support.
 
 ## Changelog
 
 ### [Unreleased]
 
 - Replace the old yellow navigation logo with the full PaperJetty PNG, matching the app icon and favicon.
+- Rename Compose service, container, network and volume names to PaperJetty and update Docker command examples.
 
 ### [1.4.1] - 2026-11-17
 
