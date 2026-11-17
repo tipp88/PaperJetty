@@ -74,6 +74,8 @@ Use `:1.4.1` instead of `:latest` to pin a release, or `:dev` to test upcoming c
 
 ### [Unreleased]
 
+- Replace the old yellow navigation logo with the full PaperJetty PNG, matching the app icon and favicon.
+
 ### [1.4.1] - 2026-11-17
 
 - Rename the app to PaperJetty, add an app icon and MIT license.

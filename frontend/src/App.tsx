@@ -379,11 +379,7 @@ function App() {
       <header className="header px-4 py-3 flex items-center justify-between safe-top">
         <div className="flex items-center gap-3">
           {/* Logo */}
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-glow-amber">
-            <svg className="w-5 h-5 text-carbon-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </div>
+          <img src="/paperjetty.png" alt="PaperJetty logo" width={32} height={32} className="w-8 h-8 shrink-0 object-contain" />
           <h1 className="font-display text-lg text-carbon-100 tracking-tight">PaperJetty</h1>
         </div>
 
