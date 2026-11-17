@@ -24,6 +24,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check release metadata
+        run: node scripts/check-release.mjs
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 

@@ -55,3 +55,9 @@ python -m app.main
 - OpenCV.js is loaded via `<script>` in `frontend/index.html` for reliability.
 - Settings are stored in JSON on the backend (`/app/data/settings.json`).
 - Version displayed in Settings modal comes from `frontend/package.json`.
+
+## Releases
+- For a stable release, update `frontend/package.json`, both root version fields in `frontend/package-lock.json`, the README version badge and a dated `CHANGELOG.md` entry together.
+- Record user-visible changes in `CHANGELOG.md`; Docker publishing does not generate release notes.
+- Run `node scripts/check-release.mjs` before publishing. The Docker workflow also checks stable release metadata and that any `v*` tag matches the package version.
+- Keep development previews clearly marked as prereleases; do not document an unshipped stable version as released.

@@ -4,7 +4,7 @@ A self-hosted, mobile-first web application for scanning documents with real-tim
 
 ![Design Preview](https://img.shields.io/badge/Design-Precision_Instrument-fbbf24?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Active-5cb576?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-1.3.4-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.4.0-blue?style=for-the-badge)
 
 ---
 
@@ -21,6 +21,8 @@ A self-hosted, mobile-first web application for scanning documents with real-tim
 - **"Finish Doc & New" Workflow**: Save pages to the active document and immediately queue it, instantly returning to the camera feed to capture the next file.
 - **Batch Uploader**: Progress-tracked sequential batch uploader. Individual upload errors are reported on-screen, allowing the batch process to continue for the remaining items.
 - **Metadata Editor**: Assign unique titles, modify tags, download individual PDFs, or delete elements from the persistent queue list.
+- **Edit Queued Documents**: Reopen a document with "Edit", rotate, replace, remove or reorder its pages, then choose "Save to Queue". Titles and tags are retained; any current document is saved to the queue before switching.
+- **Consistent Page Rotation**: Page orientation is preserved in queue previews, downloaded PDFs and Paperless uploads.
 - **Zustand Persistence**: Queue items are stored in the browser's local state via a Zustand compatibility layer, safeguarding scanned documents against accidental page reloads or tab closures.
 
 ### 🔒 Privacy-First & Self-Hosted

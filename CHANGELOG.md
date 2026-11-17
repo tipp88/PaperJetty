@@ -7,6 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-17
+
+This release includes the changes tested in 1.3.12-dev.1 and 1.3.12-dev.2.
+There was no stable 1.3.12 release.
+
+### Added
+- Reopen queued documents with "Edit" to rotate, replace, delete, enhance or reorder pages, then return them with "Save to Queue".
+- Preserve document identity, title and tags while editing, including across browser reloads. Save any unfinished active document to the queue before opening another document.
+- Validate release versions, changelog entries and the README version before publishing Docker images.
+
+### Fixed
+- Apply stored page rotations to queue thumbnails, PDF downloads and Paperless uploads, both directly and through the queue.
+- Reset stale upload errors when a corrected document is saved back to the queue. Prevent opening documents for editing during batch uploads.
+- Backfill missing recent changelog entries and update the stale README version badge.
+
+## [1.3.12-dev.2] - 2026-11-17
+
+Development preview; included in the stable 1.4.0 release.
+
+### Added
+- Queue document editing through the existing page review screen, with "Edit" and "Save to Queue" actions.
+- Retain document metadata during editing and save an existing active document before switching.
+
+## [1.3.12-dev.1] - 2026-11-17
+
+Development preview; included in the stable 1.4.0 release.
+
+### Fixed
+- Display page rotation in queue thumbnails and pass per-page rotation through all PDF and Paperless export paths.
+- Rotate PDF image pixels clockwise before scaling and compression. Accept older clients that omit rotation metadata.
+
+## [1.3.11] - 2026-10-16
+
+### Added
+- Explicit automatic/manual capture toggle and actionable document search, hold and ready hints, including a manual-capture hint when automatic capture keeps waiting.
+- Best-effort continuous autofocus, exposure and white balance on cameras that expose these browser controls.
+- Separate Docker builds for the dev branch, published under the `dev` image tag.
+- Project-local REA launcher and a documented static investigation of Adobe Scan. No Adobe native scanner, code or ML models were incorporated into DocuScan.
+
+### Fixed
+- Prevent duplicate camera starts and stop streams returned after leaving the camera screen.
+- Show actual camera and permission errors instead of silently substituting a mock camera feed.
+- Show the built image tag in Docker deployment instructions.
+
+## [1.3.10] - 2026-10-16
+
+### Added
+- Short capture bursts that select the sharpest suitable frame at native video resolution, with crop corners from that exact frame.
+- Motion checks based on document corner movement and sharpness analysis within the document rather than its background.
+
+### Fixed
+- Remove the absolute sharpness threshold that could indefinitely block automatic capture with "not sharp enough" messages.
+- Accept normal hand drift and slow frame processing; use stable preview corners to evaluate the first fresh burst frame.
+- Cancel unfinished captures when leaving the camera and retain manual capture when document detection is unavailable.
+
 ## [1.3.9] - 2026-07-08
 
 ### Fixed
