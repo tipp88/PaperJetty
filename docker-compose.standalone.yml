@@ -28,8 +28,8 @@ services:
       # Settings, including the shared Paperless token; back up this volume.
       - paperjetty-data:/app/data
       # Optional: Mount custom SSL certificates
-      # - ./ssl/docuscan.crt:/app/ssl/docuscan.crt:ro
-      # - ./ssl/docuscan.key:/app/ssl/docuscan.key:ro
+      # - ./ssl/paperjetty.crt:/app/ssl/paperjetty.crt:ro
+      # - ./ssl/paperjetty.key:/app/ssl/paperjetty.key:ro
 
       # Optional: Mount backend .env for custom config
       # - ./backend/.env:/app/backend/.env:ro

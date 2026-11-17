@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Docu_Scan Setup Script
+# PaperJetty Setup Script
 # Automates initial setup tasks
 
 set -e
@@ -12,7 +12,7 @@ echo ""
 
 # Check if we're in the right directory
 if [ ! -f "docker-compose.yml" ]; then
-    echo "❌ Error: Please run this script from the Docu_Scan root directory"
+    echo "❌ Error: Please run this script from the PaperJetty root directory"
     exit 1
 fi
 

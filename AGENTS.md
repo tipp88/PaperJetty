@@ -60,6 +60,7 @@ python -m app.main
 - README.md is the single user guide, including setup, updates and changelog. Keep research evidence in docs/research and agent instructions here.
 - For a stable release, update `frontend/package.json`, both root version fields in `frontend/package-lock.json`, the README version badge and its latest dated changelog entry together.
 - Record user-visible changes under README's Changelog/Unreleased; Docker publishing does not generate release notes. Update the introductory stable/dev branding note when releasing the rename.
-- Preserve legacy Docker image addresses, IndexedDB keys, settings paths and default tags unless an explicit migration is implemented.
+- Use PaperJetty consistently in current setup instructions, certificate paths, deployment names and default tags. Docker publishing uses only `ghcr.io/tipp88/paperjetty`.
+- Preserve existing user data: retain the legacy IndexedDB identifiers and support the old settings-file environment variable as a fallback to `PAPERJETTY_SETTINGS_FILE`. Never rewrite saved user tags during branding changes.
 - Run `node scripts/check-release.mjs` before publishing. The Docker workflow also checks stable release metadata and that any `v*` tag matches the package version.
 - Keep development previews clearly marked as prereleases; do not document an unshipped stable version as released.

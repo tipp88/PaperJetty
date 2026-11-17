@@ -73,7 +73,7 @@ export function useBatchExport() {
             JSON.stringify({
               ...imagePages,
               title: doc.title,
-              tags: tags.length > 0 ? tags : ['docu_scan'],
+              tags: tags.length > 0 ? tags : ['paperjetty'],
               paperless_url: paperlessUrl,
               paperless_token: paperlessToken,
             })

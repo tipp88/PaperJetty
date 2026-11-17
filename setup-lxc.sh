@@ -13,7 +13,7 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Configuration
-PROJECT_DIR="/opt/docuscan"
+PROJECT_DIR="/opt/paperjetty"
 BACKEND_PORT=3001
 
 echo -e "${BLUE}[1/7] Updating system packages...${NC}"
@@ -36,10 +36,10 @@ cd $PROJECT_DIR
 echo -e "${BLUE}[4/7] Generating self-signed SSL certificates...${NC}"
 mkdir -p $PROJECT_DIR/ssl
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout $PROJECT_DIR/ssl/docuscan.key \
-    -out $PROJECT_DIR/ssl/docuscan.crt \
-    -subj "/C=US/ST=State/L=City/O=Organization/CN=docuscan.local" \
-    -addext "subjectAltName=DNS:docuscan.local,DNS:localhost,IP:127.0.0.1"
+    -keyout $PROJECT_DIR/ssl/paperjetty.key \
+    -out $PROJECT_DIR/ssl/paperjetty.crt \
+    -subj "/C=US/ST=State/L=City/O=Organization/CN=paperjetty.local" \
+    -addext "subjectAltName=DNS:paperjetty.local,DNS:localhost,IP:127.0.0.1"
 
 echo -e "${GREEN}SSL certificates created at $PROJECT_DIR/ssl/${NC}"
 
@@ -62,7 +62,7 @@ npm install
 npm run build
 
 echo -e "${BLUE}[7/7] Creating systemd service for backend...${NC}"
-cat > /etc/systemd/system/docuscan-backend.service <<EOF
+cat > /etc/systemd/system/paperjetty-backend.service <<EOF
 [Unit]
 Description=PaperJetty Backend API
 After=network.target
@@ -81,8 +81,8 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable docuscan-backend
-systemctl start docuscan-backend
+systemctl enable paperjetty-backend
+systemctl start paperjetty-backend
 
 echo ""
 echo -e "${GREEN}=========================================="
@@ -101,17 +101,17 @@ cat <<'NGINX_CONFIG'
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name docuscan.yourdomain.com;
+    server_name paperjetty.yourdomain.com;
 
     # SSL Configuration
-    ssl_certificate /opt/docuscan/ssl/docuscan.crt;
-    ssl_certificate_key /opt/docuscan/ssl/docuscan.key;
+    ssl_certificate /opt/paperjetty/ssl/paperjetty.crt;
+    ssl_certificate_key /opt/paperjetty/ssl/paperjetty.key;
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
 
     # Frontend
     location / {
-        root /opt/docuscan/frontend/dist;
+        root /opt/paperjetty/frontend/dist;
         try_files $uri $uri/ /index.html;
         add_header Cache-Control "no-cache";
     }
@@ -138,17 +138,17 @@ server {
 server {
     listen 80;
     listen [::]:80;
-    server_name docuscan.yourdomain.com;
+    server_name paperjetty.yourdomain.com;
     return 301 https://$server_name$request_uri;
 }
 
 # OR OPTION 2: Path-based (add to existing server block)
-# location /docuscan/ {
-#     alias /opt/docuscan/frontend/dist/;
-#     try_files $uri $uri/ /docuscan/index.html;
+# location /paperjetty/ {
+#     alias /opt/paperjetty/frontend/dist/;
+#     try_files $uri $uri/ /paperjetty/index.html;
 # }
 #
-# location /docuscan/api/ {
+# location /paperjetty/api/ {
 #     proxy_pass http://localhost:3001/api/;
 #     # ... same proxy settings as above
 # }
@@ -166,22 +166,22 @@ echo "3. Test and reload nginx:"
 echo "   nginx -t && systemctl reload nginx"
 echo ""
 echo "4. Configure Paperless (optional):"
-echo "   nano /opt/docuscan/backend/.env"
-echo "   systemctl restart docuscan-backend"
+echo "   nano /opt/paperjetty/backend/.env"
+echo "   systemctl restart paperjetty-backend"
 echo ""
 echo -e "${YELLOW}⚠️  Camera Access Requires HTTPS!${NC}"
-echo "   - Self-signed cert created at: /opt/docuscan/ssl/"
+echo "   - Self-signed cert created at: /opt/paperjetty/ssl/"
 echo "   - For production: Use Let's Encrypt (certbot)"
 echo "   - Browsers will show security warning with self-signed cert"
 echo ""
 echo -e "${BLUE}Service Commands:${NC}"
-echo "  Backend status:  systemctl status docuscan-backend"
-echo "  Backend logs:    journalctl -u docuscan-backend -f"
-echo "  Restart backend: systemctl restart docuscan-backend"
+echo "  Backend status:  systemctl status paperjetty-backend"
+echo "  Backend logs:    journalctl -u paperjetty-backend -f"
+echo "  Restart backend: systemctl restart paperjetty-backend"
 echo ""
 echo -e "${GREEN}Installation files:${NC}"
 echo "  Application:     $PROJECT_DIR/"
 echo "  Frontend build:  $PROJECT_DIR/frontend/dist/"
 echo "  SSL certs:       $PROJECT_DIR/ssl/"
-echo "  Backend service: /etc/systemd/system/docuscan-backend.service"
+echo "  Backend service: /etc/systemd/system/paperjetty-backend.service"
 echo ""

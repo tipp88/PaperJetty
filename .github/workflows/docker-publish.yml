@@ -12,7 +12,6 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: tipp88/paperjetty
-  LEGACY_IMAGE_NAME: tipp88/docu_scan
 
 jobs:
   build-and-push:
@@ -44,7 +43,6 @@ jobs:
         with:
           images: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-            ${{ env.REGISTRY }}/${{ env.LEGACY_IMAGE_NAME }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr

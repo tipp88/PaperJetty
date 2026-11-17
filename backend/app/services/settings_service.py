@@ -5,14 +5,14 @@ from typing import Optional, Dict, Any
 from pydantic import BaseModel
 
 # Settings file location - can be overridden with environment variable
-SETTINGS_FILE = os.getenv('DOCUSCAN_SETTINGS_FILE', '/app/data/settings.json')
+SETTINGS_FILE = os.getenv('PAPERJETTY_SETTINGS_FILE') or os.getenv('DOCUSCAN_SETTINGS_FILE', '/app/data/settings.json')
 
 
 class UserSettings(BaseModel):
     """User-configurable settings stored persistently"""
     paperlessUrl: str = ""
     paperlessToken: str = ""
-    paperlessDefaultTags: str = "docu_scan"
+    paperlessDefaultTags: str = "paperjetty"
     defaultEnhancement: str = "auto"
 
 
@@ -76,5 +76,5 @@ def get_paperless_config() -> Dict[str, Any]:
     return {
         'url': settings.paperlessUrl,
         'token': settings.paperlessToken,
-        'tags': settings.paperlessDefaultTags.split(',') if settings.paperlessDefaultTags else ['docu_scan']
+        'tags': settings.paperlessDefaultTags.split(',') if settings.paperlessDefaultTags else ['paperjetty']
     }

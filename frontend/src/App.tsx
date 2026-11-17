@@ -271,7 +271,7 @@ function App() {
     // Use tags from settings, fallback to default
     const tags = settings.paperlessDefaultTags
       ? settings.paperlessDefaultTags.split(',').map(t => t.trim()).filter(Boolean)
-      : ['docu_scan'];
+      : ['paperjetty'];
 
     const result = await uploadToPaperless(pages, {
       title: `Scanned Document ${new Date().toLocaleDateString()}`,

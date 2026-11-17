@@ -29,7 +29,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [settings, setSettings] = useState<SettingsData>({
     paperlessUrl: '',
     paperlessToken: '',
-    paperlessDefaultTags: 'docu_scan',
+    paperlessDefaultTags: 'paperjetty',
     defaultEnhancement: 'auto',
   });
 
@@ -84,7 +84,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     setSettings({
       paperlessUrl: '',
       paperlessToken: '',
-      paperlessDefaultTags: 'docu_scan',
+      paperlessDefaultTags: 'paperjetty',
       defaultEnhancement: 'auto',
     });
   };
@@ -159,7 +159,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   type="text"
                   value={settings.paperlessDefaultTags}
                   onChange={(e) => setSettings({ ...settings, paperlessDefaultTags: e.target.value })}
-                  placeholder="docu_scan,mobile"
+                  placeholder="paperjetty,mobile"
                   className="w-full px-4 py-2 bg-carbon-800 border border-carbon-700 rounded-xl text-carbon-100 placeholder-carbon-500 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
                 />
                 <p className="text-xs text-carbon-500 mt-1">Comma-separated list of tags</p>
@@ -250,7 +250,7 @@ export function useSettings(): SettingsData {
   const [settings, setSettings] = useState<SettingsData>({
     paperlessUrl: '',
     paperlessToken: '',
-    paperlessDefaultTags: 'docu_scan',
+    paperlessDefaultTags: 'paperjetty',
     defaultEnhancement: 'auto',
   });
 

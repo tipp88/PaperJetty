@@ -57,10 +57,10 @@ COPY backend/.env.example /app/backend/.env
 # Create SSL directory and generate self-signed certificate
 RUN mkdir -p /app/ssl && \
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /app/ssl/docuscan.key \
-    -out /app/ssl/docuscan.crt \
+    -keyout /app/ssl/paperjetty.key \
+    -out /app/ssl/paperjetty.crt \
     -subj "/C=US/ST=State/L=City/O=PaperJetty/CN=localhost" \
-    -addext "subjectAltName=DNS:localhost,DNS:docuscan,IP:127.0.0.1"
+    -addext "subjectAltName=DNS:localhost,DNS:paperjetty,IP:127.0.0.1"
 
 # Create data directory for persistent settings
 RUN mkdir -p /app/data && chmod 777 /app/data

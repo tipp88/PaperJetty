@@ -16,7 +16,7 @@ PaperJetty (formerly DocuScan) is a self-hosted document scanner for your mobile
 - PDF download and batch upload to Paperless-ngx, with page rotation preserved.
 - Processing in your browser and on your server. OCR and archiving are handled by Paperless-ngx.
 
-The latest stable release is **1.4.1**. Docker images are published as `ghcr.io/tipp88/paperjetty`; the previous `ghcr.io/tipp88/docu_scan` address continues to receive updates for existing installations.
+The latest stable release is **1.4.1**. Docker images are published as `ghcr.io/tipp88/paperjetty`.
 
 ## Docker setup
 
@@ -43,7 +43,7 @@ services:
 docker compose up -d
 ```
 
-Open **`https://YOUR-SERVER-IP:8443`** on your phone. The bundled certificate is self-signed and browsers may warn or refuse camera access. For reliable use, provide a certificate trusted by your phone or use an HTTPS reverse proxy. Custom certificates can be mounted at `/app/ssl/docuscan.crt` and `/app/ssl/docuscan.key`. Keep your chosen URL consistent so the browser can find its saved queue.
+Open **`https://YOUR-SERVER-IP:8443`** on your phone. The bundled certificate is self-signed and browsers may warn or refuse camera access. For reliable use, provide a certificate trusted by your phone or use an HTTPS reverse proxy. On the current `dev` image, custom certificates can be mounted at `/app/ssl/paperjetty.crt` and `/app/ssl/paperjetty.key`. The released 1.4.1 image still uses the old certificate paths; follow its [versioned setup guide](https://github.com/tipp88/PaperJetty/blob/v1.4.1/README.md#docker-setup) until upgrading. Keep your chosen URL consistent so the browser can find its saved queue.
 
 In **Settings**, enter your Paperless-ngx URL, API token and default tags. Use an address reachable from the container; `localhost` inside the container is not your Paperless server. Paperless is optional for PDF downloads.
 
@@ -68,9 +68,9 @@ docker compose up -d
 
 Keep the same volume and browser URL. Back up `./data` (it contains credentials), and finish or download queued scans before maintenance. Do not use `down -v` when relying on named volumes. When migrating an existing `docker run` installation, reuse its `/app/data` host directory instead of creating a fresh one.
 
-When replacing the old `docuscan` service with `paperjetty`, run `docker compose down` using the old configuration first, without `-v`, then start the new configuration. Keep the same `./data` directory and browser URL. If using the standalone recipe with existing named volumes, set `name: YOUR_EXISTING_VOLUME_NAME` under each new top-level volume entry (`paperjetty-data` and `paperjetty-logs`) to reuse the old volumes.
+When replacing the old service with `paperjetty`, run `docker compose down` using the old configuration first, without `-v`, then start the new configuration. Keep the same `./data` directory and browser URL. If using the standalone recipe with existing named volumes, set `name: YOUR_EXISTING_VOLUME_NAME` under each new top-level volume entry (`paperjetty-data` and `paperjetty-logs`) to reuse the old volumes. Keep the Compose project name unchanged during this switch, or stop the old project explicitly before changing it. For custom certificates on the upcoming release or `dev`, update the container-side mount paths to `/app/ssl/paperjetty.crt` and `/app/ssl/paperjetty.key`.
 
-Use `:1.4.1` instead of `:latest` to pin a release, or `:dev` to test upcoming changes. The previous image address `ghcr.io/tipp88/docu_scan` remains available. Troubleshooting: `docker compose logs --tail=100`; check HTTPS and browser permissions for camera errors, and container connectivity/token settings for upload errors. Capture quality depends on lighting, focus and browser/device support.
+Use `:1.4.1` instead of `:latest` to pin a release, or `:dev` to test upcoming changes. Change any old image reference to `ghcr.io/tipp88/paperjetty` for future updates. Troubleshooting: `docker compose logs --tail=100`; check HTTPS and browser permissions for camera errors, and container connectivity/token settings for upload errors. Capture quality depends on lighting, focus and browser/device support.
 
 ## Changelog
 
@@ -78,6 +78,8 @@ Use `:1.4.1` instead of `:latest` to pin a release, or `:dev` to test upcoming c
 
 - Replace the old yellow navigation logo with the full PaperJetty PNG, matching the app icon and favicon.
 - Rename Compose service, container, network and volume names to PaperJetty and update Docker command examples.
+- Complete the rename across certificate paths, nginx, setup scripts, Compose project defaults and default upload tags; use `PAPERJETTY_SETTINGS_FILE` for configuration. Existing saved settings and browser scans are preserved.
+- Publish future Docker images only under `ghcr.io/tipp88/paperjetty`; update old image references before upgrading.
 
 ### [1.4.1] - 2026-11-17
 
@@ -136,7 +138,7 @@ cd backend
 python3 -m venv venv
 . venv/bin/activate
 pip install -r requirements.txt
-BACKEND_PORT=3001 DOCUSCAN_SETTINGS_FILE=./data/settings.json python -m app.main
+BACKEND_PORT=3001 PAPERJETTY_SETTINGS_FILE=./data/settings.json python -m app.main
 
 # Terminal 2: frontend
 cd frontend

@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 
 function check({ version = '1.4.0', lockVersion = version, badge = version,
   entry = version, notes = '- A documented change.', heading = 'Changelog', ref = 'refs/heads/main' } = {}) {
-  const root = mkdtempSync(join(tmpdir(), 'docuscan-release-check-'));
+  const root = mkdtempSync(join(tmpdir(), 'paperjetty-release-check-'));
   try {
     mkdirSync(join(root, 'scripts'));
     mkdirSync(join(root, 'frontend'));

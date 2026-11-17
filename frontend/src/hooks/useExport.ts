@@ -123,7 +123,7 @@ export function useExport() {
         xhr.send(JSON.stringify({
           ...imagePages,
           title: options.title || `Scanned Document ${new Date().toLocaleDateString()}`,
-          tags: options.tags || ['docu_scan'],
+          tags: options.tags || ['paperjetty'],
           paperless_url: options.paperlessUrl,
           paperless_token: options.paperlessToken,
         }));

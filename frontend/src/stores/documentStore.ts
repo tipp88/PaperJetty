@@ -8,6 +8,8 @@ import { getOpenCV } from '../utils/opencv';
 import { finishDocument, reopenDocument, type ActiveDocument } from '../utils/queueEditing';
 
 // Custom StateStorage backed by IndexedDB to handle large base64 document images
+// Keep the legacy database and persistence key so existing scans remain accessible.
+// These are storage identifiers, not names exposed in the UI or deployment setup.
 const idbStorage: StateStorage = {
   getItem: async (name: string): Promise<string | null> => {
     return new Promise((resolve) => {

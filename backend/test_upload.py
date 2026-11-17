@@ -21,7 +21,7 @@ async def test():
         result = await upload_to_paperless(
             pdf_bytes=pdf_bytes,
             title="Test Document",
-            tags=["docu_scan"]
+            tags=["paperjetty"]
         )
         print(f"Success! Result type: {type(result)}")
         print(f"Result value: {result}")
