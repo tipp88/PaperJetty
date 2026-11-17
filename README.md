@@ -1,5 +1,7 @@
 # PaperJetty
 
+<img src="frontend/public/paperjetty.png" alt="PaperJetty logo" width="360" />
+
 **Scan on your phone. Review your pages. Send them to your own archive.**
 
 PaperJetty (formerly DocuScan) is a self-hosted document scanner for your mobile browser. Capture documents, adjust corners, enhance and rotate pages, then download PDFs or upload them to Paperless-ngx. No native app installation is required.
@@ -71,6 +73,7 @@ Use `:1.4.0` instead of `:latest` to pin a release, or `:dev` to test upcoming c
 ### [Unreleased]
 
 - Rename the app to PaperJetty, add an app icon and MIT license.
+- Use the full PaperJetty PNG logo in this README, as the app icon and favicon.
 - Consolidate installation, updates and version history into this README; remove obsolete setup/status guides.
 - Persist settings in the standalone Compose recipe, correct its image reference and HTTPS health check, and exclude local analysis tools from Docker builds.
 - Keep existing image addresses, settings paths, default tags and browser storage keys compatible.

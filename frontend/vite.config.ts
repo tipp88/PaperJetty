@@ -30,9 +30,9 @@ export default defineConfig({
         theme_color: '#ffffff',
         icons: [
           {
-            src: '/paperjetty.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
+            src: '/paperjetty.png',
+            sizes: '1024x1024',
+            type: 'image/png',
             purpose: 'any'
           }
         ]
