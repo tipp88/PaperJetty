@@ -6,9 +6,9 @@
 
 PaperJetty (formerly DocuScan) is a self-hosted document scanner for your mobile browser. Capture documents, adjust corners, enhance and rotate pages, then download PDFs or upload them to Paperless-ngx. No native app installation is required.
 
-[![Version](https://img.shields.io/badge/Version-1.4.0-blue?style=for-the-badge)](https://github.com/tipp88/docu_scan/releases/tag/v1.4.0)
-[![Releases](https://img.shields.io/badge/GitHub-Releases-181717?style=for-the-badge&logo=github)](https://github.com/tipp88/docu_scan/releases)
-[![Issues](https://img.shields.io/badge/GitHub-Issues-181717?style=for-the-badge&logo=github)](https://github.com/tipp88/docu_scan/issues)
+[![Version](https://img.shields.io/badge/Version-1.4.1-blue?style=for-the-badge)](https://github.com/tipp88/PaperJetty/releases/tag/v1.4.1)
+[![Releases](https://img.shields.io/badge/GitHub-Releases-181717?style=for-the-badge&logo=github)](https://github.com/tipp88/PaperJetty/releases)
+[![Issues](https://img.shields.io/badge/GitHub-Issues-181717?style=for-the-badge&logo=github)](https://github.com/tipp88/PaperJetty/issues)
 [![MIT license](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 - Automatic or manual capture, with selection of the sharpest suitable frame from a short burst.
@@ -16,7 +16,7 @@ PaperJetty (formerly DocuScan) is a self-hosted document scanner for your mobile
 - PDF download and batch upload to Paperless-ngx, with page rotation preserved.
 - Processing in your browser and on your server. OCR and archiving are handled by Paperless-ngx.
 
-The repository and Docker image still use `tipp88/docu_scan` so existing installations keep working. The PaperJetty name is currently available on the `dev` image; the latest stable release is 1.4.0.
+The latest stable release is **1.4.1**. Docker images are published as `ghcr.io/tipp88/paperjetty`; the previous `ghcr.io/tipp88/docu_scan` address continues to receive updates for existing installations.
 
 ## Docker setup
 
@@ -25,7 +25,7 @@ Requires Docker with Compose on a **Linux amd64** host and a phone browser with 
 ```yaml
 services:
   docuscan:
-    image: ghcr.io/tipp88/docu_scan:latest
+    image: ghcr.io/tipp88/paperjetty:latest
     restart: unless-stopped
     ports:
       - "8443:443"
@@ -68,17 +68,20 @@ docker compose up -d
 
 Keep the same volume and browser URL. Back up `./data` (it contains credentials), and finish or download queued scans before maintenance. Do not use `down -v` when relying on named volumes. When migrating an existing `docker run` installation, reuse its `/app/data` host directory instead of creating a fresh one.
 
-Use `:1.4.0` instead of `:latest` to pin a release, or `:dev` to test upcoming changes. Troubleshooting: `docker compose logs --tail=100`; check HTTPS and browser permissions for camera errors, and container connectivity/token settings for upload errors. Capture quality depends on lighting, focus and browser/device support.
+Use `:1.4.1` instead of `:latest` to pin a release, or `:dev` to test upcoming changes. Existing installations may keep `ghcr.io/tipp88/docu_scan`, or change only the image to `ghcr.io/tipp88/paperjetty` while preserving their data mount, Compose project/service names and browser URL. Troubleshooting: `docker compose logs --tail=100`; check HTTPS and browser permissions for camera errors, and container connectivity/token settings for upload errors. Capture quality depends on lighting, focus and browser/device support.
 
 ## Changelog
 
 ### [Unreleased]
+
+### [1.4.1] - 2026-11-17
 
 - Rename the app to PaperJetty, add an app icon and MIT license.
 - Use the full PaperJetty PNG logo in this README, as the app icon and favicon.
 - Consolidate installation, updates and version history into this README; remove obsolete setup/status guides.
 - Persist settings in the standalone Compose recipe, correct its image reference and HTTPS health check, and exclude local analysis tools from Docker builds.
 - Keep existing image addresses, settings paths, default tags and browser storage keys compatible.
+- Move the repository to PaperJetty and publish Docker images under both `paperjetty` and the legacy `docu_scan` name.
 
 ### [1.4.0] - 2026-11-17
 
@@ -113,7 +116,7 @@ Use `:1.4.0` instead of `:latest` to pin a release, or `:dev` to test upcoming c
 | 1.3.2 | 2026-06-11 | Correct scaled edge-detection area thresholds. |
 | 1.3.1 | 2026-06-11 | Add corner magnifier, version display and faster edge detection. |
 
-[Original detailed history, including earlier releases](https://github.com/tipp88/docu_scan/blob/v1.4.0/CHANGELOG.md).
+[Original detailed history, including earlier releases](https://github.com/tipp88/PaperJetty/blob/v1.4.0/CHANGELOG.md).
 
 </details>
 

@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ghcr.io/tipp88/docu_scan:latest
+    image: ghcr.io/tipp88/paperjetty:latest
     container_name: docuscan
     restart: unless-stopped
     ports:
