@@ -27,7 +27,7 @@ export default defineConfig({
         name: 'PaperJetty',
         short_name: 'PaperJetty',
         description: 'Privacy-first mobile document scanning app',
-        theme_color: '#ffffff',
+        theme_color: '#0c0c0c',
         icons: [
           {
             src: '/paperjetty.png',

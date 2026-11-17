@@ -401,7 +401,7 @@ function App() {
             <PagesIcon />
             <span className="hidden sm:inline">Active Doc</span>
             {pages.length > 0 && (
-              <span className="badge badge-amber">{pages.length}</span>
+              <span className="badge badge-brand">{pages.length}</span>
             )}
           </button>
           <button
@@ -412,7 +412,7 @@ function App() {
             <QueueIcon />
             <span className="hidden sm:inline">Queue</span>
             {queue.length > 0 && (
-              <span className="badge badge-amber">{queue.length}</span>
+              <span className="badge badge-brand">{queue.length}</span>
             )}
           </button>
           <button
@@ -622,7 +622,7 @@ function App() {
                 <div className="mb-6 animate-fade-in">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-carbon-300">Exporting...</span>
-                    <span className="text-sm font-medium text-amber-400">{progress}%</span>
+                    <span className="text-sm font-medium text-brand-400">{progress}%</span>
                   </div>
                   <div className="progress-track">
                     <div className="progress-fill" style={{ width: `${progress}%` }} />
@@ -645,7 +645,7 @@ function App() {
                   disabled={isExporting}
                   className="export-option"
                 >
-                  <div className="export-icon bg-amber-400/20">
+                  <div className="export-icon bg-brand-400/20">
                     <DownloadIcon />
                   </div>
                   <div className="flex-1">
@@ -746,7 +746,7 @@ function App() {
                             className="w-full h-full object-cover"
                           />
                         )}
-                        <span className="absolute bottom-0 right-0 bg-carbon-950/80 text-amber-400 text-[10px] px-1 font-mono rounded-tl border-l border-t border-carbon-800">
+                        <span className="absolute bottom-0 right-0 bg-carbon-950/80 text-brand-400 text-[10px] px-1 font-mono rounded-tl border-l border-t border-carbon-800">
                           {doc.pages.length}P
                         </span>
                       </div>
@@ -758,7 +758,7 @@ function App() {
                             type="text"
                             value={doc.title}
                             onChange={(e) => updateQueuedDocument(doc.id, { title: e.target.value })}
-                            className="bg-carbon-950 border border-carbon-800 rounded px-2 py-1 text-sm text-carbon-100 font-display focus:outline-none focus:border-amber-400/50 flex-1 min-w-0"
+                            className="bg-carbon-950 border border-carbon-800 rounded px-2 py-1 text-sm text-carbon-100 font-display focus:outline-none focus:border-brand-400/50 flex-1 min-w-0"
                             disabled={doc.status === 'uploading' || doc.status === 'completed'}
                           />
                           <input
@@ -766,7 +766,7 @@ function App() {
                             value={doc.tags.join(', ')}
                             onChange={(e) => updateQueuedDocument(doc.id, { tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
                             placeholder="tags (comma separated)"
-                            className="bg-carbon-950 border border-carbon-800 rounded px-2 py-1 text-xs text-carbon-400 focus:outline-none focus:border-amber-400/50 sm:w-48"
+                            className="bg-carbon-950 border border-carbon-800 rounded px-2 py-1 text-xs text-carbon-400 focus:outline-none focus:border-brand-400/50 sm:w-48"
                             disabled={doc.status === 'uploading' || doc.status === 'completed'}
                           />
                         </div>
@@ -774,13 +774,13 @@ function App() {
                         {/* Status detail */}
                         {doc.status === 'uploading' && (
                           <div className="space-y-1">
-                            <div className="flex justify-between text-[11px] text-amber-400">
+                            <div className="flex justify-between text-[11px] text-brand-400">
                               <span>Uploading...</span>
                               <span>{doc.progress || 0}%</span>
                             </div>
                             <div className="h-1 bg-carbon-950 rounded overflow-hidden">
                               <div
-                                className="h-full bg-amber-400 transition-all duration-300"
+                                className="h-full bg-brand-400 transition-all duration-300"
                                 style={{ width: `${doc.progress || 0}%` }}
                               />
                             </div>
@@ -799,7 +799,7 @@ function App() {
                         {/* Badges */}
                         <div>
                           {doc.status === 'queued' && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brand-400/10 text-brand-400 border border-brand-400/20">
                               Ready
                             </span>
                           )}

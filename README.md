@@ -76,6 +76,7 @@ Use `:1.4.1` instead of `:latest` to pin a release, or `:dev` to test upcoming c
 
 ### [Unreleased]
 
+- Match navigation, buttons, focus rings, progress indicators and scan/crop overlays to the logo's cyan and turquoise palette.
 - Replace the old yellow navigation logo with the full PaperJetty PNG, matching the app icon and favicon.
 - Rename Compose service, container, network and volume names to PaperJetty and update Docker command examples.
 - Complete the rename across certificate paths, nginx, setup scripts, Compose project defaults and default upload tags; use `PAPERJETTY_SETTINGS_FILE` for configuration. Existing saved settings and browser scans are preserved.

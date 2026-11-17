@@ -13,7 +13,7 @@ interface CameraCaptureProps {
 // Flash icon
 const FlashIcon = ({ on }: { on: boolean }) => (
   <svg
-    className={`w-6 h-6 transition-colors duration-200 ${on ? 'text-amber-400' : 'text-carbon-100'}`}
+    className={`w-6 h-6 transition-colors duration-200 ${on ? 'text-brand-400' : 'text-carbon-100'}`}
     fill={on ? 'currentColor' : 'none'}
     viewBox="0 0 24 24"
     stroke="currentColor"
@@ -183,7 +183,7 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
       {/* One actionable status, including a fallback while OpenCV loads. */}
       {stream && !error && !isLoading && (
         <div role="status" aria-live="polite" className="absolute top-4 left-4 right-4 z-20 px-3 py-2 rounded-lg bg-carbon-800/90 backdrop-blur-sm border border-carbon-700">
-          <span className="text-sm font-medium text-amber-400">
+          <span className="text-sm font-medium text-brand-400">
             {isCapturing ? 'Selecting sharpest frame...'
               : captureMessage || (!autoCapture ? 'Manual mode — tap to capture'
                 : corners && !captureBoundsOk(corners, videoRef.current?.videoWidth ?? 0, videoRef.current?.videoHeight ?? 0)
@@ -247,7 +247,7 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
                     disabled={isCapturing}
                     className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 ${
                       flashOn
-                        ? 'bg-amber-400/20 border-2 border-amber-400 shadow-glow-amber'
+                        ? 'bg-brand-400/20 border-2 border-brand-400 shadow-glow-brand'
                         : 'bg-carbon-800/80 border border-carbon-700 hover:bg-carbon-700'
                     }`}
                     aria-label={flashOn ? 'Turn off flash' : 'Turn on flash'}
@@ -266,7 +266,7 @@ export function CameraCapture({ onCapture, onError }: CameraCaptureProps) {
                 aria-label="Capture photo"
               >
                 {/* Pulse ring on hover */}
-                <div className="absolute inset-0 rounded-full border-2 border-amber-400/0 group-hover:border-amber-400/50 transition-all duration-300 scale-100 group-hover:scale-110" />
+                <div className="absolute inset-0 rounded-full border-2 border-brand-400/0 group-hover:border-brand-400/50 transition-all duration-300 scale-100 group-hover:scale-110" />
               </button>
 
               <button

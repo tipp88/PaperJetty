@@ -88,9 +88,9 @@ export function EdgeDetector({
     const br = transformPoint(corners.bottomRight.x, corners.bottomRight.y);
     const bl = transformPoint(corners.bottomLeft.x, corners.bottomLeft.y);
 
-    // Color based on stability (simpler - just green or amber)
-    const strokeColor = isStable ? 'rgba(251, 191, 36, 1)' : 'rgba(251, 191, 36, 0.7)';
-    const fillColor = isStable ? 'rgba(251, 191, 36, 0.15)' : 'rgba(251, 191, 36, 0.08)';
+    // Keep the logo accent; increase opacity when the document is stable.
+    const strokeColor = isStable ? 'rgba(45, 226, 207, 1)' : 'rgba(45, 226, 207, 0.7)';
+    const fillColor = isStable ? 'rgba(45, 226, 207, 0.15)' : 'rgba(45, 226, 207, 0.08)';
 
     // Draw quadrilateral fill
     ctx.beginPath();

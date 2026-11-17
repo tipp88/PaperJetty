@@ -9,10 +9,10 @@ interface CornerAdjusterProps {
 
 // Design tokens for the corner adjuster
 const COLORS = {
-  // Amber accent from the design system
-  accent: '#fbbf24',
-  accentLight: '#fcd34d',
-  accentGlow: 'rgba(251, 191, 36, 0.4)',
+  // Brand accent from the design system
+  accent: '#2de2cf',
+  accentLight: '#6aebe0',
+  accentGlow: 'rgba(45, 226, 207, 0.4)',
   // Dark carbon colors
   dark: '#0c0c0c',
   darkTranslucent: 'rgba(12, 12, 12, 0.8)',
@@ -201,7 +201,7 @@ export function CornerAdjuster({ imageData, initialCorners, onCornersChange }: C
 
     // Draw dashed grid lines inside the selection for precision
     ctx.setLineDash([8 * scale, 8 * scale]);
-    ctx.strokeStyle = 'rgba(251, 191, 36, 0.15)';
+    ctx.strokeStyle = 'rgba(45, 226, 207, 0.15)';
     ctx.lineWidth = 1 * scale;
 
     // Vertical center line
@@ -254,7 +254,7 @@ export function CornerAdjuster({ imageData, initialCorners, onCornersChange }: C
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
 
-      // Inner circle (amber accent)
+      // Inner circle (brand accent)
       ctx.fillStyle = isActive ? COLORS.accentLight : COLORS.accent;
       ctx.beginPath();
       ctx.arc(x, y, innerRadius, 0, Math.PI * 2);
@@ -437,7 +437,7 @@ export function CornerAdjuster({ imageData, initialCorners, onCornersChange }: C
       />
       {draggingIndex !== null && dragCoords && (
         <div 
-          className="absolute pointer-events-none rounded-full border-4 border-amber-400 shadow-2xl overflow-hidden bg-carbon-900"
+          className="absolute pointer-events-none rounded-full border-4 border-brand-400 shadow-2xl overflow-hidden bg-carbon-900"
           style={{
             width: '120px',
             height: '120px',
@@ -449,9 +449,9 @@ export function CornerAdjuster({ imageData, initialCorners, onCornersChange }: C
           <canvas ref={magnifierCanvasRef} width={120} height={120} />
           {/* Crosshair */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-            <div className="absolute w-full h-[1.5px] bg-amber-400/40" />
-            <div className="absolute h-full w-[1.5px] bg-amber-400/40" />
+            <div className="w-1.5 h-1.5 rounded-full bg-brand-400" />
+            <div className="absolute w-full h-[1.5px] bg-brand-400/40" />
+            <div className="absolute h-full w-[1.5px] bg-brand-400/40" />
           </div>
         </div>
       )}

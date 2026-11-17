@@ -2,7 +2,7 @@
 
 /* ============================================
    PaperJetty — Scan to your own archive
-   Design System: Refined Brutalist-Industrial
+   Design System: Charcoal with logo-inspired cyan and turquoise accents
    ============================================ */
 
 @theme {
@@ -19,15 +19,15 @@
   --color-carbon-900: #1a1a1a;
   --color-carbon-950: #0c0c0c;
 
-  /* Warm amber accent */
-  --color-amber-50: #fffbeb;
-  --color-amber-100: #fef3c7;
-  --color-amber-200: #fde68a;
-  --color-amber-300: #fcd34d;
-  --color-amber-400: #fbbf24;
-  --color-amber-500: #f59e0b;
-  --color-amber-600: #d97706;
-  --color-amber-700: #b45309;
+  /* Cyan and turquoise from the PaperJetty logo */
+  --color-brand-50: #effdfb;
+  --color-brand-100: #cefbf3;
+  --color-brand-200: #9df5e8;
+  --color-brand-300: #6aebe0;
+  --color-brand-400: #2de2cf;
+  --color-brand-500: #22bfd5;
+  --color-brand-600: #1398b5;
+  --color-brand-700: #146e8a;
 
   /* Success green */
   --color-sage-400: #84cc9a;
@@ -44,8 +44,8 @@
   --font-body: 'Outfit', system-ui, sans-serif;
 
   /* Custom shadows */
-  --shadow-glow-amber: 0 0 20px rgba(251, 191, 36, 0.3);
-  --shadow-glow-amber-lg: 0 0 40px rgba(251, 191, 36, 0.4);
+  --shadow-glow-brand: 0 0 20px rgba(45, 226, 207, 0.3);
+  --shadow-glow-brand-lg: 0 0 40px rgba(45, 226, 207, 0.4);
 
   /* Animations */
   --animate-fade-in: fadeIn 0.3s ease-out;
@@ -92,8 +92,8 @@
   --color-text-primary: #f7f7f7;
   --color-text-secondary: #a4a4a4;
   --color-text-muted: #666666;
-  --color-accent: #fbbf24;
-  --color-accent-glow: rgba(251, 191, 36, 0.3);
+  --color-accent: var(--color-brand-400);
+  --color-accent-glow: rgba(45, 226, 207, 0.3);
 
   font-family: 'Outfit', system-ui, sans-serif;
   line-height: 1.5;
@@ -187,13 +187,13 @@ body {
 }
 
 .btn-primary {
-  background: #fbbf24;
+  background: var(--color-brand-400);
   color: #0c0c0c;
-  box-shadow: var(--shadow-glow-amber);
+  box-shadow: var(--shadow-glow-brand);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #fcd34d;
+  background: var(--color-brand-300);
 }
 
 .btn-secondary {
@@ -315,9 +315,10 @@ body {
   cursor: not-allowed;
 }
 
-.nav-tab.active {
-  color: #fbbf24;
-  background: rgba(251, 191, 36, 0.1);
+.nav-tab.active,
+.nav-tab.active:hover:not(:disabled) {
+  color: #2de2cf;
+  background: rgba(45, 226, 207, 0.1);
 }
 
 .nav-tab.active::after {
@@ -329,7 +330,7 @@ body {
   width: 4px;
   height: 4px;
   border-radius: 9999px;
-  background: #fbbf24;
+  background: #2de2cf;
 }
 
 /* ============================================
@@ -348,8 +349,8 @@ body {
   border-radius: 9999px;
 }
 
-.badge-amber {
-  background: #fbbf24;
+.badge-brand {
+  background: #2de2cf;
   color: #0c0c0c;
 }
 
@@ -384,7 +385,7 @@ body {
 
 .capture-btn:focus {
   outline: none;
-  box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.5);
+  box-shadow: 0 0 0 4px rgba(45, 226, 207, 0.5);
 }
 
 .capture-btn::before {
@@ -398,7 +399,7 @@ body {
 }
 
 .capture-btn:hover::before {
-  border-color: #fbbf24;
+  border-color: #2de2cf;
 }
 
 /* ============================================
@@ -454,12 +455,12 @@ body {
 
 /* Selection Mode */
 .page-thumbnail.selected {
-  border-color: #fbbf24;
-  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3);
+  border-color: #2de2cf;
+  box-shadow: 0 0 0 3px rgba(45, 226, 207, 0.3);
 }
 
 .page-thumbnail.selected:hover {
-  border-color: #fbbf24;
+  border-color: #2de2cf;
 }
 
 .selection-checkbox {
@@ -479,8 +480,8 @@ body {
 }
 
 .selection-checkbox.checked {
-  background: #fbbf24;
-  border-color: #fbbf24;
+  background: #2de2cf;
+  border-color: #2de2cf;
 }
 
 .selection-checkbox.checked svg {
@@ -496,13 +497,13 @@ body {
 .page-thumbnail.dragging-overlay {
   opacity: 1;
   transform: scale(1.05);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 3px rgba(251, 191, 36, 0.5);
-  border-color: #fbbf24;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 3px rgba(45, 226, 207, 0.5);
+  border-color: #2de2cf;
   cursor: grabbing;
 }
 
 .page-thumbnail.drag-over {
-  border-color: #fbbf24;
+  border-color: #2de2cf;
   border-style: dashed;
 }
 
@@ -525,9 +526,9 @@ body {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(to right, #f59e0b, #fbbf24);
+  background: linear-gradient(to right, var(--color-brand-500), var(--color-brand-400));
   transition: width 0.3s ease-out;
-  box-shadow: var(--shadow-glow-amber);
+  box-shadow: var(--shadow-glow-brand);
 }
 
 /* ============================================
@@ -539,7 +540,7 @@ body {
   height: 2rem;
   border-radius: 9999px;
   border: 2px solid #434343;
-  border-top-color: #fbbf24;
+  border-top-color: #2de2cf;
   animation: spin 1s linear infinite;
 }
 
@@ -604,7 +605,7 @@ body {
 }
 
 .export-option:focus {
-  outline: 2px solid rgba(251, 191, 36, 0.5);
+  outline: 2px solid rgba(45, 226, 207, 0.5);
   outline-offset: 2px;
 }
 
@@ -676,7 +677,7 @@ body {
   left: 0;
   right: 0;
   height: 6rem;
-  background: linear-gradient(to bottom, transparent, rgba(251, 191, 36, 0.1), transparent);
+  background: linear-gradient(to bottom, transparent, rgba(45, 226, 207, 0.1), transparent);
   pointer-events: none;
   animation: scanMove 2.5s ease-in-out infinite;
 }
@@ -699,7 +700,7 @@ body {
   position: absolute;
   width: 2rem;
   height: 2rem;
-  border-color: #fbbf24;
+  border-color: #2de2cf;
 }
 
 .camera-frame::before {
@@ -725,8 +726,8 @@ body {
   right: 0;
   width: 2rem;
   height: 2rem;
-  border-top: 2px solid #fbbf24;
-  border-right: 2px solid #fbbf24;
+  border-top: 2px solid #2de2cf;
+  border-right: 2px solid #2de2cf;
   border-top-right-radius: 0.5rem;
 }
 
@@ -737,8 +738,8 @@ body {
   left: 0;
   width: 2rem;
   height: 2rem;
-  border-bottom: 2px solid #fbbf24;
-  border-left: 2px solid #fbbf24;
+  border-bottom: 2px solid #2de2cf;
+  border-left: 2px solid #2de2cf;
   border-bottom-left-radius: 0.5rem;
 }
 
