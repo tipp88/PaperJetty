@@ -6,8 +6,10 @@
 
 PaperJetty (formerly DocuScan) is a self-hosted document scanner for your mobile browser. Capture documents, adjust corners, enhance and rotate pages, then download PDFs or upload them to Paperless-ngx. No native app installation is required.
 
-![Version](https://img.shields.io/badge/Version-1.4.0-blue?style=for-the-badge)
-[Releases](https://github.com/tipp88/docu_scan/releases) · [Issues](https://github.com/tipp88/docu_scan/issues) · [MIT license](LICENSE)
+[![Version](https://img.shields.io/badge/Version-1.4.0-blue?style=for-the-badge)](https://github.com/tipp88/docu_scan/releases/tag/v1.4.0)
+[![Releases](https://img.shields.io/badge/GitHub-Releases-181717?style=for-the-badge&logo=github)](https://github.com/tipp88/docu_scan/releases)
+[![Issues](https://img.shields.io/badge/GitHub-Issues-181717?style=for-the-badge&logo=github)](https://github.com/tipp88/docu_scan/issues)
+[![MIT license](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 - Automatic or manual capture, with selection of the sharpest suitable frame from a short burst.
 - Multiple pages per document, editable document queue, titles and tags.
