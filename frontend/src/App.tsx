@@ -161,6 +161,9 @@ function App() {
     clear,
     rotatePage,
     queue,
+    activeDocument,
+    editQueuedDocument,
+    isProcessing: isPageProcessing,
     finishActiveDocument,
     updateQueuedDocument,
     deleteQueuedDocument,
@@ -514,9 +517,9 @@ function App() {
                 />
               ) : (
                 /* Normal Header */
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                   <div>
-                    <h2 className="font-display text-2xl text-carbon-100 mb-1">Your Document</h2>
+                    <h2 className="font-display text-2xl text-carbon-100 mb-1 break-words">{activeDocument ? `Editing: ${activeDocument.title}` : 'Your Document'}</h2>
                     <p className="text-carbon-400 text-sm">
                       {pages.length} page{pages.length !== 1 ? 's' : ''} scanned
                     </p>
@@ -529,9 +532,10 @@ function App() {
                           setView('queue');
                         }}
                         className="btn btn-secondary"
+                        disabled={isPageProcessing}
                       >
                         <QueueIcon />
-                        <span>Queue Doc</span>
+                        <span>{activeDocument ? 'Save to Queue' : 'Queue Doc'}</span>
                       </button>
                       <button
                         onClick={() => setView('export')}
@@ -731,6 +735,9 @@ function App() {
                 </div>
               ) : (
                 <div className="space-y-4">
+                  <p className="text-carbon-400 text-sm">
+                    Edit opens a document in Active Doc. Any current document is saved to the queue first.
+                  </p>
                   {queue.map((doc) => (
                     <div key={doc.id} className="card p-4 flex flex-col md:flex-row items-start md:items-center gap-4 bg-carbon-900 border border-carbon-800">
                       {/* Thumbnail */}
@@ -814,6 +821,24 @@ function App() {
 
                         {/* Button Actions */}
                         <div className="flex items-center gap-1.5">
+                          {(doc.status === 'queued' || doc.status === 'failed') && (
+                            <button
+                              onClick={() => {
+                                if (editQueuedDocument(doc.id)) {
+                                  setPreviewPageId(null);
+                                  setRetakePageId(null);
+                                  setCapturedImage(null);
+                                  setSelectionMode(false);
+                                  setSelectedPageIds(new Set());
+                                  setView('review');
+                                }
+                              }}
+                              disabled={isBatchExporting || isProcessing || isPageProcessing}
+                              className="btn btn-secondary btn-sm"
+                            >
+                              Edit
+                            </button>
+                          )}
                           <button
                             onClick={() => downloadSinglePDF(doc)}
                             className="btn btn-ghost btn-sm btn-icon"

@@ -5,6 +5,7 @@ import { applyPerspectiveTransform } from '../utils/perspectiveTransform';
 import { cropWithPerspective } from '../utils/canvasCrop';
 import { detectBestEnhancement, enhanceImage } from '../utils/imageEnhancement';
 import { getOpenCV } from '../utils/opencv';
+import { finishDocument, reopenDocument, type ActiveDocument } from '../utils/queueEditing';
 
 // Custom StateStorage backed by IndexedDB to handle large base64 document images
 const idbStorage: StateStorage = {
@@ -93,6 +94,7 @@ interface DocumentStore {
 
   // Queue states
   queue: ScannedDocument[];
+  activeDocument: ActiveDocument | null;
 
   // Active document actions
   addPage: (originalImage: string, corners?: [Point, Point, Point, Point]) => Promise<void>;
@@ -108,6 +110,7 @@ interface DocumentStore {
 
   // Queue actions
   finishActiveDocument: (title?: string, tags?: string[]) => void;
+  editQueuedDocument: (id: string) => boolean;
   updateQueuedDocument: (id: string, updates: Partial<ScannedDocument>) => void;
   deleteQueuedDocument: (id: string) => void;
   clearQueue: () => void;
@@ -120,6 +123,7 @@ export const useDocumentStore = create<DocumentStore>()(
       currentPageIndex: null,
       isProcessing: false,
       queue: [],
+      activeDocument: null,
 
       addPage: async (originalImage: string, corners?: [Point, Point, Point, Point]) => {
         set({ isProcessing: true });
@@ -382,29 +386,22 @@ export const useDocumentStore = create<DocumentStore>()(
       },
 
       clear: () => {
-        set({ pages: [], currentPageIndex: null });
+        set({ pages: [], currentPageIndex: null, activeDocument: null });
       },
 
       // Queue Actions
       finishActiveDocument: (title?: string, tags?: string[]) => {
-        const state = get();
-        if (state.pages.length === 0) return;
+        if (get().isProcessing) return;
+        const next = finishDocument(get(), title, tags);
+        if (next) set(next);
+      },
 
-        const defaultTitle = `Scan ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-        const newDoc: ScannedDocument = {
-          id: `doc-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          title: title || defaultTitle,
-          pages: [...state.pages],
-          tags: tags || [],
-          status: 'queued',
-          timestamp: Date.now(),
-        };
-
-        set(state => ({
-          queue: [...state.queue, newDoc],
-          pages: [],
-          currentPageIndex: null,
-        }));
+      editQueuedDocument: (id: string) => {
+        if (get().isProcessing) return false;
+        const next = reopenDocument(get(), id);
+        if (!next) return false;
+        set(next);
+        return true;
       },
 
       updateQueuedDocument: (id: string, updates: Partial<ScannedDocument>) => {
@@ -433,6 +430,7 @@ export const useDocumentStore = create<DocumentStore>()(
         pages: state.pages,
         currentPageIndex: state.currentPageIndex,
         queue: state.queue,
+        activeDocument: state.activeDocument,
       }),
     }
   )
